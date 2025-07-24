@@ -1,0 +1,117 @@
+import type { Request, Response, NextFunction } from "express";
+import { AuthService, UserService } from "../services";
+import { successResponse } from "../utils";
+import { BadRequestError, ValidationError } from "../errors";
+import {
+  COOKIE_OPTIONS,
+  COOKIE_NAME,
+  REFRESH_COOKIE_NAME,
+  REFRESH_COOKIE_OPTIONS
+} from "../utils";
+import { ownership } from "../middlewares";
+
+export const authGuard = ownership({
+  findById: UserService.getUserById,
+  field: "_id",
+  resourceName: "user"
+});
+
+export const AuthController = {
+  async login(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { email, password } = req.body;
+
+      if (!email || !password) {
+        throw new BadRequestError("Email and password are required");
+      }
+
+      const { accessToken, refreshToken } = await AuthService.login(
+        email,
+        password
+      );
+
+      if (!COOKIE_NAME || !REFRESH_COOKIE_NAME)
+        throw new ValidationError(
+          "COOKIE_NAME environment variable is not defined"
+        );
+
+      res
+        .cookie(COOKIE_NAME, accessToken, COOKIE_OPTIONS)
+        .cookie(REFRESH_COOKIE_NAME, refreshToken, REFRESH_COOKIE_OPTIONS);
+
+      return successResponse(res, { message: "Login successful" });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async logout(req: Request, res: Response, next: NextFunction) {
+    try {
+      const refreshToken = req.cookies?.refreshToken;
+      if (!COOKIE_NAME || !REFRESH_COOKIE_NAME) {
+        throw new ValidationError(
+          "COOKIE_NAME environment variable is not defined"
+        );
+      }
+
+      if (refreshToken) {
+        await AuthService.logout(refreshToken);
+      }
+
+      res
+        .clearCookie(COOKIE_NAME, COOKIE_OPTIONS)
+        .clearCookie(REFRESH_COOKIE_NAME, COOKIE_OPTIONS);
+
+      return successResponse(res, { message: "Logged out successfully" });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async refreshToken(req: Request, res: Response, next: NextFunction) {
+    try {
+      const oldToken = req.cookies?.refreshToken;
+      if (!oldToken) {
+        throw new BadRequestError("Refresh token not provided");
+      }
+
+      const { accessToken, refreshToken } = await AuthService.refresh(oldToken);
+      if (!COOKIE_NAME || !REFRESH_COOKIE_NAME)
+        throw new ValidationError(
+          "COOKIE_NAME environment variable is not defined"
+        );
+
+      res
+        .cookie(COOKIE_NAME, accessToken, COOKIE_OPTIONS)
+        .cookie(REFRESH_COOKIE_NAME, refreshToken, REFRESH_COOKIE_OPTIONS);
+
+      return successResponse(res, { message: "Access token refreshed" });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async logoutAll(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.params.id || req.user?.id;
+      if (!userId) {
+        throw new ValidationError("User ID not found in request");
+      }
+
+      await AuthService.logoutAll(userId);
+
+      if (!COOKIE_NAME || !REFRESH_COOKIE_NAME)
+        throw new ValidationError(
+          "COOKIE_NAME environment variable is not defined"
+        );
+
+      res
+        .clearCookie(COOKIE_NAME, COOKIE_OPTIONS)
+        .clearCookie(REFRESH_COOKIE_NAME, COOKIE_OPTIONS);
+
+      return successResponse(res, { message: "Logged out from all devices" });
+    } catch (error) {
+      next(error);
+    }
+  }
+};
