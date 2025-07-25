@@ -109,11 +109,12 @@ Los tokens se gestionan mediante cookies seguras:
 ### Usuarios
 
 ```
-GET     /user
-GET     /user/:id
-PATCH   /user/:id     (admin o el mismo usuario)
-DELETE  /user/:id     (admin o el mismo usuario)
-PATCH   /admin/:id/role  (solo admin)
+GET     /user               (admin o el mismo usuario)
+GET     /user/:id           (admin)
+PATCH   /user/:id           (admin o el mismo usuario)
+DELETE  /user/:id           (admin o el mismo usuario)
+GET     /user/my-recipes    (todos los usuarios)
+GET     /user/saved-recipes (todos los usuarios)
 ```
 
 ### Recetas
@@ -131,10 +132,18 @@ DELETE  /recipe/:id
 ```
 GET     /ingredient
 POST    /ingredient
+PATCH   /ingredient/:id
 DELETE  /ingredient/:id
 ```
 
 ### Imágenes (media)
+
+```
+POST    /media/upload       (con imagen)
+DELETE  /media/:public_id
+```
+
+### Endpoints exclusivos para admin
 
 ```
 POST    /media/upload       (con imagen)
@@ -167,13 +176,24 @@ bun run admin-seed
 
 ```
 /src
+  /config
   /controllers
-  /services
-  /models
-  /routes
+  /data
+  /docs
+  /errors
   /middlewares
-  /utils
+  /models
+  /repository
+  /routes
   /schemas
+  /scripts
+  /services
+  /types
+  /utils
+  app.ts
+/tests
+index.ts
+README.MD
 ```
 
 ---
