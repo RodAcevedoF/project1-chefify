@@ -47,7 +47,7 @@ export const readRecipeCsv = async (
       };
     } catch (err) {
       console.warn("Error parsing a record:", record, err);
-      return record; // O podrías descartar según tu criterio
+      return record;
     }
   });
 

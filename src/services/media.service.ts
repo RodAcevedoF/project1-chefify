@@ -1,10 +1,10 @@
+import { uploadToCloudinary, deleteFromCloudinary } from "../utils";
 import {
-  uploadToCloudinary,
-  deleteFromCloudinary
-} from "../utils/cloudinaryHelpers";
-import { mediaEntityConfig, type MediaEntityType } from "../utils";
+  mediaEntityConfig,
+  type MediaEntityType,
+  getRepository
+} from "../utils";
 import { NotFoundError, BadRequestError } from "../errors";
-import "dotenv/config";
 
 interface UploadResult {
   url: string;
@@ -32,7 +32,7 @@ export const MediaService = {
     return this.upload(options.buffer, options.folder);
   },
 
-  async replaceEntityImage(options: {
+  /* async replaceEntityImage(options: {
     entityId: string;
     type: MediaEntityType;
     buffer: Buffer;
@@ -61,9 +61,38 @@ export const MediaService = {
     });
 
     return result;
-  },
+  } */
 
-  async deleteEntityImage(
+  async replaceEntityImage({
+    entityId,
+    type,
+    buffer
+  }: {
+    entityId: string;
+    type: MediaEntityType;
+    buffer: Buffer;
+  }) {
+    const config = mediaEntityConfig[type];
+    if (!config) throw new BadRequestError("Invalid media type");
+
+    const repo = getRepository(type);
+    const entity = await repo.findById(entityId);
+    if (!entity) throw new NotFoundError(`${type} "${entityId}" not found`);
+
+    const result = await this.replace({
+      buffer,
+      folder: config.folder,
+      previousPublicId: entity.imgPublicId
+    });
+
+    await repo.updateById(entity._id, {
+      imgUrl: result.url,
+      imgPublicId: result.publicId
+    });
+
+    return result;
+  },
+  /* async deleteEntityImage(
     entityId: string,
     type: MediaEntityType
   ): Promise<void> {
@@ -81,6 +110,25 @@ export const MediaService = {
       await deleteFromCloudinary(entity.imgPublicId);
 
       await config.repo.updateById(entityId, {
+        imgUrl: undefined,
+        imgPublicId: undefined
+      });
+    }
+  } */
+  async deleteEntityImage(
+    entityId: string,
+    type: MediaEntityType
+  ): Promise<void> {
+    const config = mediaEntityConfig[type];
+    if (!config) throw new BadRequestError("Invalid media type");
+
+    const repo = getRepository(type);
+    const entity = await repo.findById(entityId);
+    if (!entity) throw new NotFoundError(`${type} "${entityId}" not found`);
+
+    if (entity.imgPublicId) {
+      await deleteFromCloudinary(entity.imgPublicId);
+      await repo.updateById(entityId, {
         imgUrl: undefined,
         imgPublicId: undefined
       });

@@ -1,11 +1,10 @@
-import type { AppErrorLike } from "../types";
+import type { AppError } from "../errors";
 
-export const isAppError = (err: unknown): err is AppErrorLike => {
-  if (typeof err === "object" && err !== null) {
-    if ("statusCode" in err) {
-      const maybeStatusCode = (err as { statusCode?: unknown }).statusCode;
-      return typeof maybeStatusCode === "number";
-    }
-  }
-  return false;
+export const isAppError = (err: unknown): err is AppError => {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "isApp" in err &&
+    (err as AppError).isApp === true
+  );
 };

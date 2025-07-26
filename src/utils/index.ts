@@ -8,4 +8,5 @@ export * from "./csvReader";
 export * from "./cloudinaryHelpers";
 export * from "./entityConfig";
 export * from "./escapeRegex";
+export * from "./mediaHelpers";
 export * from "./cookieoptions";

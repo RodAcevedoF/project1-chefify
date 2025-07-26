@@ -28,8 +28,9 @@ export const recipeSchema = new Schema<IRecipe>(
 );
 
 export const IngredientRecipeSchema = z.object({
-  ingredientId: z.string().length(24),
-  quantity: z.number().positive()
+  ingredient: z.string().length(24),
+  quantity: z.number().positive(),
+  _id: z.string().length(24).optional()
 });
 
 export const RecipeInputSchema = z

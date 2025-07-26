@@ -7,7 +7,6 @@ import {
   adminRoutes,
   mediaRoutes
 } from "../routes";
-import "dotenv/config";
 
 const base = process.env.BASE_ROUTE || "/chefify/api/v1";
 

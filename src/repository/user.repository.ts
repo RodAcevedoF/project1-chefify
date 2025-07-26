@@ -5,6 +5,13 @@ export const UserRepository = {
   async createUser(data: UserInput): Promise<IUser> {
     return await User.create(data);
   },
+  /* async createUser(data: UserInput): Promise<IUser> {
+    try {
+      return await User.create(data);
+    } catch (error) {
+      throw new ValidationError(`User creation failed, ${error}`);
+    } 
+  },*/
   async insertMany(users: UserInput[]): Promise<UserInput[]> {
     return await User.insertMany(users);
   },

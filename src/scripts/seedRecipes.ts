@@ -63,8 +63,8 @@ export const runSeed = async () => {
 
     const cleanedRecipes = seedRecipes.map((r) => ({
       ...r,
-      ingredients: r.ingredients.map(({ ingredientId, quantity }) => ({
-        ingredientId,
+      ingredients: r.ingredients.map(({ ingredient, quantity }) => ({
+        ingredient,
         quantity
       }))
     }));

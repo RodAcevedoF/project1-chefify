@@ -10,11 +10,12 @@ interface CloudinaryUploadResult {
 
 export const uploadToCloudinary = async (
   buffer: Buffer,
-  folder: string
+  folder: string,
+  uploader = cloudinary.uploader // valor por defecto: producción
 ): Promise<CloudinaryUploadResult> => {
   try {
     return new Promise((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
+      const stream = uploader.upload_stream(
         {
           folder,
           upload_preset: undefined, // forzamos que no use uno
@@ -38,12 +39,14 @@ export const uploadToCloudinary = async (
     throw new UploadError(`Cloudinary error: ${message}`);
   }
 };
-
-export const deleteFromCloudinary = async (publicId: string): Promise<void> => {
+export const deleteFromCloudinary = async (
+  publicId: string,
+  uploader = cloudinary.uploader
+): Promise<void> => {
   if (!publicId) return;
 
   try {
-    await cloudinary.uploader.destroy(publicId, { resource_type: "image" });
+    await uploader.destroy(publicId, { resource_type: "image" });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     throw new UploadError(`Cloudinary error: ${message}`);

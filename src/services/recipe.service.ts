@@ -15,7 +15,7 @@ export const RecipeService = {
       );
     }
 
-    const ingredientsId: string[] = data.ingredients.map((i) => i.ingredientId);
+    const ingredientsId: string[] = data.ingredients.map((i) => i.ingredient);
 
     const missingIngredients =
       await IngredientService.validateIngredientIds(ingredientsId);

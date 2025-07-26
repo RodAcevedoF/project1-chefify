@@ -12,13 +12,16 @@
   },
   "devDependencies": {
     "@types/bun": "^1.2.18",
+    "@types/supertest": "^6.0.3",
     "@typescript-eslint/eslint-plugin": "^8.37.0",
     "@typescript-eslint/parser": "^8.37.0",
     "eslint": "^9.31.0",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-prettier": "^5.5.1",
     "jiti": "^2.4.2",
-    "prettier": "^3.6.2"
+    "mongodb-memory-server": "^10.1.4",
+    "prettier": "^3.6.2",
+    "supertest": "^7.1.4"
   },
   "peerDependencies": {
     "typescript": "^5"
@@ -39,7 +42,6 @@
     "csv-parse": "^6.1.0",
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
-    "express-mongo-sanitize": "^2.2.0",
     "express-rate-limit": "^8.0.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",

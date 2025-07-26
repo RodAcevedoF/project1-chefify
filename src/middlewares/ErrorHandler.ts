@@ -1,25 +1,27 @@
-import type { Request, Response } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { isAppError } from "../utils";
 
-export const errorHandler = (err: unknown, req: Request, res: Response) => {
-  let statusCode = 500;
-  let message = "Internal Server Error";
-  let stack: string | undefined = undefined;
+export const errorHandler = (
+  err: unknown,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const isKnownError = err instanceof Error;
+  const statusCode =
+    isKnownError && isAppError(err) ? (err.statusCode ?? 500) : 500;
+  const message = isKnownError ? err.message : "Internal Server Error";
+  const stack = isKnownError ? err.stack : undefined;
 
-  if (err instanceof Error) {
-    message = err.message;
-    stack = err.stack;
-
-    if (isAppError(err)) {
-      statusCode = err.statusCode!;
-    }
-  }
-
-  const response = {
+  const response: Record<string, unknown> = {
     success: false,
     error: message,
-    stack: process.env.NODE_ENV === "development" ? stack : undefined
+    ...(process.env.NODE_ENV === "development" && { stack })
   };
+
+  if (isKnownError && isAppError(err)) {
+    response.statusCode = statusCode;
+  }
 
   if (process.env.NODE_ENV === "development") {
     console.error("ERROR →", err);
