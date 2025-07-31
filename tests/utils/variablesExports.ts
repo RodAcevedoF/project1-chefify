@@ -1,0 +1,29 @@
+const DB_URL = process.env.DB_URL;
+const PORT = process.env.PORT;
+const NODE_ENV = process.env.NODE_ENV;
+const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME;
+const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY;
+const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET;
+const ADMIN_NAME = process.env.ADMIN_NAME;
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
+const ADMIN_PASS = process.env.ADMIN_PASS;
+const JWT_SECRET = process.env.JWT_SECRET;
+const COOKIE_NAME = process.env.COOKIE_NAME;
+const REFRESH_COOKIE_NAME = process.env.REFRESH_COOKIE_NAME;
+const BASE_ROUTE = process.env.BASE_ROUTE;
+
+export {
+  DB_URL,
+  PORT,
+  NODE_ENV,
+  CLOUDINARY_CLOUD_NAME,
+  CLOUDINARY_API_KEY,
+  CLOUDINARY_API_SECRET,
+  ADMIN_NAME,
+  ADMIN_EMAIL,
+  ADMIN_PASS,
+  JWT_SECRET,
+  COOKIE_NAME,
+  REFRESH_COOKIE_NAME,
+  BASE_ROUTE,
+};

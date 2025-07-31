@@ -1,4 +1,4 @@
-import { UserRepository, RecipeRepository } from "../repository";
+import { UserRepository, RecipeRepository } from "../repositories";
 import type { MediaEntityType } from "./entityConfig";
 
 export function getRepository(type: MediaEntityType) {

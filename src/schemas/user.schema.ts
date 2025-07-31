@@ -1,5 +1,6 @@
 import { Schema } from "mongoose";
 import { z } from "zod";
+import bcrypt from "bcryptjs";
 
 export const userSchema = new Schema(
   {
@@ -13,11 +14,11 @@ export const userSchema = new Schema(
     role: {
       type: String,
       enum: ["user", "admin"],
-      default: "user"
-    }
+      default: "user",
+    },
   },
   {
-    timestamps: true
+    timestamps: true,
   }
 );
 
@@ -30,7 +31,7 @@ export const UserInputSchema = z
     savedRecipes: z.array(z.string().regex(/^[0-9a-fA-F]{24}$/)).optional(),
     imgUrl: z.string().optional(),
     imgPublicId: z.string().optional(),
-    role: z.enum(["user", "admin"]).default("user")
+    role: z.enum(["user", "admin"]).default("user"),
   })
   .strict();
 
@@ -40,9 +41,20 @@ userSchema.methods.populateSavedRecipes = function () {
   return this.populate("savedRecipes");
 };
 
-// Define una interfaz extendida con el método
 export type IUser = UserInput & {
   _id: string;
   createdAt: Date;
   updatedAt: Date;
 };
+
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+
+  try {
+    const hashed = await bcrypt.hash(this.password, 10);
+    this.password = hashed;
+    next();
+  } catch (err) {
+    next(err as Error);
+  }
+});

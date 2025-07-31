@@ -3,13 +3,6 @@ import { IngredientService } from "../services";
 import { successResponse } from "../utils";
 import type { IngredientInput } from "../schemas";
 import { BadRequestError, NotFoundError } from "../errors";
-import { ownership } from "../middlewares";
-
-export const ingredientGuard = ownership({
-  findById: IngredientService.getIngredientById,
-  field: "createdBy",
-  resourceName: "ingredient"
-});
 
 export const IngredientController = {
   async create(req: Request, res: Response, next: NextFunction) {
@@ -18,7 +11,7 @@ export const IngredientController = {
       const newIngredient: IngredientInput = {
         name: body.name,
         unit: body.unit,
-        userId: req.user?.id
+        userId: req.user?.id,
       };
       const created = await IngredientService.createIngredient(newIngredient);
       return successResponse(res, created, 201);
@@ -88,5 +81,5 @@ export const IngredientController = {
     } catch (error) {
       next(error);
     }
-  }
+  },
 };

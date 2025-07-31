@@ -1,9 +1,9 @@
 import { ConflictError, NotFoundError } from "../errors";
-import { IngredientRepository } from "../repository";
+import { IngredientRepository } from "../repositories";
 import {
   IngredientInputSchema,
   type IngredientInput,
-  type IIngredient
+  type IIngredient,
 } from "../schemas";
 
 export const IngredientService = {
@@ -67,5 +67,5 @@ export const IngredientService = {
     const existingIds = found.filter(Boolean).map((i) => i!._id.toString());
     const missing = ids.filter((id) => !existingIds.includes(id));
     return missing;
-  }
+  },
 };

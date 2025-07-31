@@ -1,7 +1,9 @@
 import { Router } from "express";
-import { IngredientController, ingredientGuard } from "../controllers";
-import { authenticate, validateBody } from "../middlewares";
+import { IngredientController } from "../controllers";
 import { IngredientInputSchema } from "../schemas";
+import { ingredientGuard } from "../middlewares/ingredient.guard";
+import { authenticate } from "../middlewares/authenticate";
+import { validateBody } from "../middlewares/validateBody";
 
 const router = Router();
 router.use(authenticate());

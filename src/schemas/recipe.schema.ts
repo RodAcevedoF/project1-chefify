@@ -1,4 +1,3 @@
-// Mongoose
 import { Schema } from "mongoose";
 import { z } from "zod";
 
@@ -11,10 +10,10 @@ export const recipeSchema = new Schema<IRecipe>(
         ingredient: {
           type: Schema.Types.ObjectId,
           ref: "Ingredient",
-          required: true
+          required: true,
         },
-        quantity: { type: Number, required: true }
-      }
+        quantity: { type: Number, required: true },
+      },
     ],
     instructions: { type: [String], required: true },
     categories: { type: [String], required: false, default: [] },
@@ -22,7 +21,7 @@ export const recipeSchema = new Schema<IRecipe>(
     imgPublicId: { type: String, required: false },
     servings: { type: Number },
     prepTime: { type: Number },
-    utensils: { type: [String], default: [] }
+    utensils: { type: [String], default: [] },
   },
   { timestamps: true }
 );
@@ -30,7 +29,7 @@ export const recipeSchema = new Schema<IRecipe>(
 export const IngredientRecipeSchema = z.object({
   ingredient: z.string().length(24),
   quantity: z.number().positive(),
-  _id: z.string().length(24).optional()
+  _id: z.string().length(24).optional(),
 });
 
 export const RecipeInputSchema = z
@@ -44,7 +43,7 @@ export const RecipeInputSchema = z
     userId: z.string().optional(),
     servings: z.number().int().positive().optional(),
     prepTime: z.number().int().positive().optional(),
-    utensils: z.array(z.string().trim()).optional()
+    utensils: z.array(z.string().trim()).optional(),
   })
   .strict();
 

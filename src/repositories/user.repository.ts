@@ -1,17 +1,11 @@
+import type { HydratedDocument } from "mongoose";
 import { Recipe, User } from "../models";
 import type { IRecipe, IUser, UserInput } from "../schemas";
 
 export const UserRepository = {
-  async createUser(data: UserInput): Promise<IUser> {
+  async createUser(data: UserInput): Promise<HydratedDocument<IUser>> {
     return await User.create(data);
   },
-  /* async createUser(data: UserInput): Promise<IUser> {
-    try {
-      return await User.create(data);
-    } catch (error) {
-      throw new ValidationError(`User creation failed, ${error}`);
-    } 
-  },*/
   async insertMany(users: UserInput[]): Promise<UserInput[]> {
     return await User.insertMany(users);
   },
@@ -20,21 +14,21 @@ export const UserRepository = {
     return await User.find().sort({ createdAt: -1 });
   },
 
-  async findById(id: string): Promise<IUser | null> {
+  async findById(id: string): Promise<HydratedDocument<IUser> | null> {
     return await User.findById(id);
   },
 
-  async findByEmail(email: string): Promise<IUser | null> {
+  async findByEmail(email: string): Promise<HydratedDocument<IUser> | null> {
     return await User.findOne({ email });
   },
 
   async updateById(
     id: string,
     data: Partial<Omit<UserInput, "role">>
-  ): Promise<IUser | null> {
+  ): Promise<HydratedDocument<IUser> | null> {
     return await User.findByIdAndUpdate(id, data, {
       new: true,
-      runValidators: true
+      runValidators: true,
     });
   },
 
@@ -65,10 +59,9 @@ export const UserRepository = {
   },
   async getSavedRecipes(userId: string): Promise<IUser | null> {
     return await User.findById(userId).populate("savedRecipes");
-    // .populate("savedRecipes", "-__v")
   },
 
   async getCreatedRecipes(userId: string): Promise<IRecipe[]> {
     return Recipe.find({ userId });
-  }
+  },
 };

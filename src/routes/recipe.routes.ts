@@ -1,9 +1,9 @@
 import { Router } from "express";
-import { validateBody } from "../middlewares";
-import { authenticate } from "../middlewares/authenticate";
 import { RecipeInputSchema } from "../schemas";
-import { RecipeController, recipeGuard } from "../controllers";
-
+import { RecipeController } from "../controllers";
+import { recipeGuard } from "../middlewares/recipe.guard";
+import { authenticate } from "../middlewares/authenticate";
+import { validateBody } from "../middlewares/validateBody";
 const router = Router();
 
 // Autenticación para todas las rutas de recetas
@@ -19,6 +19,7 @@ router.get("/", RecipeController.getAll);
 router.get("/category", RecipeController.getByCategory);
 router.get("/search", RecipeController.getByTitle); // ?title=Paella
 router.get("/:id", RecipeController.getById);
+//Obtener sugerencia de receta (IA generated)
 
 // Actualizar receta
 router.patch("/:id", recipeGuard, RecipeController.update);

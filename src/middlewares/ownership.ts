@@ -1,12 +1,14 @@
 import { BadRequestError, ForbiddenError, NotFoundError } from "../errors";
 import type { Request, Response, NextFunction } from "express";
 
+type FindByIdFn = () => (id: string) => Promise<unknown>;
+
 export const ownership = ({
   findById,
   field,
-  resourceName
+  resourceName,
 }: {
-  findById: (id: string) => Promise<unknown>;
+  findById: FindByIdFn;
   field: string;
   resourceName: string;
 }) => {
@@ -14,7 +16,9 @@ export const ownership = ({
     try {
       const { id } = req.params;
       if (!id) throw new BadRequestError("Invalid ID");
-      const resource = await findById(id);
+
+      const resolve = findById();
+      const resource = await resolve(id);
 
       if (!resource) throw new NotFoundError(`${resourceName} not found`);
 

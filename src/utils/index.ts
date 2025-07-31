@@ -10,3 +10,5 @@ export * from "./entityConfig";
 export * from "./escapeRegex";
 export * from "./mediaHelpers";
 export * from "./cookieoptions";
+export * from "./wrappers";
+export * from "./sanitizeUser";

@@ -3,15 +3,8 @@ import { RecipeService } from "../services";
 import { successResponse } from "../utils";
 import { RecipeInputSchema, type RecipeInput } from "../schemas";
 import { BadRequestError, NotFoundError } from "../errors";
-import { ownership } from "../middlewares";
 
 type RecipeBody = Omit<RecipeInput, "userId">;
-
-export const recipeGuard = ownership({
-  findById: RecipeService.getRecipeById,
-  field: "userId",
-  resourceName: "recipe"
-});
 
 export const RecipeController = {
   async create(req: Request, res: Response, next: NextFunction) {
@@ -24,7 +17,7 @@ export const RecipeController = {
 
       const newRecipe: RecipeInput = {
         ...body,
-        userId: req.user.id
+        userId: req.user.id,
       };
 
       const created = await RecipeService.createRecipe(newRecipe);
@@ -140,5 +133,5 @@ export const RecipeController = {
     } catch (error) {
       next(error);
     }
-  }
+  },
 };

@@ -1,7 +1,6 @@
 import { cloudinary } from "../config/cloudinaryConfig";
 import { UploadError } from "../errors";
 import streamifier from "streamifier";
-import "dotenv/config"; // Asegura que las variables estén cargadas aquí
 
 interface CloudinaryUploadResult {
   secure_url: string;
@@ -19,7 +18,7 @@ export const uploadToCloudinary = async (
         {
           folder,
           upload_preset: undefined, // forzamos que no use uno
-          resource_type: "image"
+          resource_type: "image",
         },
         (error, result) => {
           if (error || !result) {
@@ -28,7 +27,7 @@ export const uploadToCloudinary = async (
 
           resolve({
             secure_url: result.secure_url,
-            public_id: result.public_id
+            public_id: result.public_id,
           });
         }
       );

@@ -1,54 +1,54 @@
-import { UserRepository } from "../repository";
+import { UserRepository } from "../repositories";
 import type { UserInput, IUser, IRecipe } from "../schemas";
 import { BadRequestError, NotFoundError } from "../errors";
-import bcrypt from "bcryptjs";
 import { MediaService } from "./media.service";
+import { sanitizeUser } from "../utils";
 
 export const UserService = {
-  async createUser(data: UserInput): Promise<IUser> {
+  async createUser(data: UserInput): Promise<Omit<IUser, "password">> {
     const existing = await UserRepository.findByEmail(data.email);
     if (existing) throw new BadRequestError("Email already exists");
-    const hashedPass = await bcrypt.hash(data.password, 10);
-    return await UserRepository.createUser({ ...data, password: hashedPass });
+    const userDoc = await UserRepository.createUser(data);
+    const resUser = sanitizeUser(userDoc);
+    return resUser;
   },
 
   async getAllUsers(): Promise<IUser[]> {
     return await UserRepository.findAll();
   },
 
-  async getUserById(id: string): Promise<IUser> {
+  async getUserById(id: string): Promise<Omit<IUser, "password">> {
     const user = await UserRepository.findById(id);
     if (!user) throw new NotFoundError("User not found");
-    return user;
+    const sanitizedUser = sanitizeUser(user);
+    return sanitizedUser;
   },
 
-  async getUserByEmail(email: string): Promise<IUser> {
+  async getUserByEmail(email: string): Promise<Omit<IUser, "password">> {
     const user = await UserRepository.findByEmail(email);
     if (!user) throw new NotFoundError(`No user with email ${email}`);
-    return user;
+    const sanitizedUser = sanitizeUser(user);
+    return sanitizedUser;
   },
 
   async updateUser(
     id: string,
     data: Partial<Omit<UserInput, "role">>
-  ): Promise<IUser> {
-    // Protección extra: eliminar cualquier intento de cambiar el rol
+  ): Promise<Omit<IUser, "password">> {
     if ("role" in data) delete (data as Partial<UserInput>).role;
     const updated = await UserRepository.updateById(id, data);
     if (!updated) throw new NotFoundError("User not found for update");
-    return updated;
+    const sanitizedUser = sanitizeUser(updated);
+    return sanitizedUser;
   },
 
-  async deleteUser(id: string): Promise<IUser> {
+  async deleteUser(id: string): Promise<{}> {
     const user = await UserRepository.findById(id);
     if (!user) throw new NotFoundError("User not found for deletion");
-
     await MediaService.deleteEntityImage(id, "user");
-
     const deleted = await UserRepository.deleteById(id);
     if (!deleted) throw new NotFoundError("User not found for deletion");
-
-    return deleted;
+    return {};
   },
 
   async saveRecipe(userId: string, recipeId: string): Promise<IUser> {
@@ -84,5 +84,5 @@ export const UserService = {
     const recipes = await UserRepository.getCreatedRecipes(userId);
     if (!recipes) throw new NotFoundError("Recipes not found");
     return recipes;
-  }
+  },
 };

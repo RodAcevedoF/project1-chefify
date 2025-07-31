@@ -1,6 +1,6 @@
 import { BadRequestError, ConflictError, NotFoundError } from "../errors";
 import { Recipe } from "../models";
-import { RecipeRepository } from "../repository";
+import { RecipeRepository } from "../repositories";
 import { RecipeInputSchema, type RecipeInput, type IRecipe } from "../schemas";
 import { IngredientService } from "./ingredient.service";
 import { MediaService } from "./media.service";
@@ -103,5 +103,5 @@ export const RecipeService = {
       .sort({ createdAt: sort })
       .skip(skip)
       .limit(limit);
-  }
+  },
 };

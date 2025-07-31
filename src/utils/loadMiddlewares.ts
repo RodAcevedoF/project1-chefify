@@ -1,7 +1,7 @@
 import helmet from "helmet";
 import cors from "cors";
 import morgan from "morgan";
-import { generalRateLimiter } from "../middlewares";
+import { generalRateLimiter } from "../middlewares/rateLimit";
 import { type Express, json, urlencoded } from "express";
 import cookieParser from "cookie-parser";
 
@@ -15,7 +15,7 @@ export const loadMiddlewares = (app: Express) => {
     cors({
       origin: "*", // Cambia en producción
       methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization"]
+      allowedHeaders: ["Content-Type", "Authorization"],
     })
   );
   // Logging en desarrollo

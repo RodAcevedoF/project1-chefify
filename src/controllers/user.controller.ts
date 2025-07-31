@@ -3,13 +3,6 @@ import { UserService } from "../services";
 import { successResponse } from "../utils";
 import { BadRequestError } from "../errors"; // Asumiendo que tienes estos
 import type { UserInput } from "../schemas";
-import { ownership } from "../middlewares";
-
-export const userGuard = ownership({
-  findById: UserService.getUserById,
-  field: "_id",
-  resourceName: "user"
-});
 
 export const UserController = {
   async create(req: Request, res: Response, next: NextFunction) {
@@ -33,7 +26,7 @@ export const UserController = {
 
   async getById(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = req.user?.id;
+      const id = req.params ? req.params.id : req.user?.id;
       if (!id) throw new BadRequestError("ID is required");
       const user = await UserService.getUserById(id);
       return successResponse(res, user);
@@ -117,7 +110,7 @@ export const UserController = {
       const updated = await UserService.saveRecipe(id, recipeId);
       return successResponse(res, {
         message: "Recipe saved successfully",
-        savedRecipes: updated.savedRecipes
+        savedRecipes: updated.savedRecipes,
       });
     } catch (error) {
       next(error);
@@ -134,10 +127,10 @@ export const UserController = {
       const updated = await UserService.deleteRecipe(id, recipeId);
       return successResponse(res, {
         message: "Recipe removed from saved list",
-        savedRecipes: updated.savedRecipes
+        savedRecipes: updated.savedRecipes,
       });
     } catch (error) {
       next(error);
     }
-  }
+  },
 };

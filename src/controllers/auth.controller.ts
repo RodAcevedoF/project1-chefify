@@ -1,20 +1,13 @@
 import type { Request, Response, NextFunction } from "express";
-import { AuthService, UserService } from "../services";
+import { AuthService } from "../services";
 import { successResponse } from "../utils";
 import { BadRequestError, ValidationError } from "../errors";
 import {
   COOKIE_OPTIONS,
   COOKIE_NAME,
   REFRESH_COOKIE_NAME,
-  REFRESH_COOKIE_OPTIONS
+  REFRESH_COOKIE_OPTIONS,
 } from "../utils";
-import { ownership } from "../middlewares";
-
-export const authGuard = ownership({
-  findById: UserService.getUserById,
-  field: "_id",
-  resourceName: "user"
-});
 
 export const AuthController = {
   async login(req: Request, res: Response, next: NextFunction) {
@@ -113,5 +106,5 @@ export const AuthController = {
     } catch (error) {
       next(error);
     }
-  }
+  },
 };

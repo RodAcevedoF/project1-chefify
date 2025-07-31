@@ -1,7 +1,9 @@
 import { Router } from "express";
-import { UserController, userGuard } from "../controllers";
-import { authenticate, validateBody } from "../middlewares";
+import { UserController } from "../controllers";
 import { UserInputSchema } from "../schemas";
+import { userGuard } from "../middlewares/user.guard";
+import { authenticate } from "../middlewares/authenticate";
+import { validateBody } from "../middlewares/validateBody";
 
 const router = Router();
 
@@ -10,7 +12,7 @@ router.post("/", validateBody(UserInputSchema), UserController.create);
 
 // Obtener usuario por ID
 router.get("/", authenticate(), UserController.getById);
-router.get("/:id", authenticate(), userGuard, UserController.getById);
+router.get("/:id", authenticate(["admin"]), userGuard, UserController.getById);
 
 // Obtener usuario por email (usando query param: ?email=...)
 router.get("/search/email", authenticate(), UserController.getByEmail);

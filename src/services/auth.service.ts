@@ -1,9 +1,8 @@
-import { UserRepository, RefreshTokenRepository } from "../repository";
+import { UserRepository, RefreshTokenRepository } from "../repositories";
 import { NotFoundError, UnauthorizedError, ForbiddenError } from "../errors";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import type { TokenPayload, LoginResponse } from "../types";
+import { bcryptWrapper, jwtWrapper } from "../utils";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 const JWT_EXPIRES_IN = "1h";
@@ -14,17 +13,17 @@ export const AuthService = {
     const user = await UserRepository.findByEmail(email);
     if (!user) throw new NotFoundError("Email provided not found");
 
-    const isValid = await bcrypt.compare(password, user.password);
+    const isValid = await bcryptWrapper.compare(password, user.password);
     if (!isValid) throw new UnauthorizedError("Invalid credentials");
 
     const payload: TokenPayload = {
       id: user._id,
       email: user.email,
-      role: user.role
+      role: user.role,
     };
 
-    const accessToken = jwt.sign(payload, JWT_SECRET, {
-      expiresIn: JWT_EXPIRES_IN
+    const accessToken = jwtWrapper.sign(payload, JWT_SECRET, {
+      expiresIn: JWT_EXPIRES_IN,
     });
 
     const refreshToken = uuidv4();
@@ -36,7 +35,7 @@ export const AuthService = {
     await RefreshTokenRepository.create({
       userId: user._id.toString(),
       token: refreshToken,
-      expiresAt
+      expiresAt,
     });
 
     return { accessToken, refreshToken };
@@ -61,11 +60,11 @@ export const AuthService = {
     const payload: TokenPayload = {
       id: user._id,
       email: user.email,
-      role: user.role
+      role: user.role,
     };
 
-    const accessToken = jwt.sign(payload, JWT_SECRET, {
-      expiresIn: JWT_EXPIRES_IN
+    const accessToken = jwtWrapper.sign(payload, JWT_SECRET, {
+      expiresIn: JWT_EXPIRES_IN,
     });
 
     const newRefreshToken = uuidv4();
@@ -76,7 +75,7 @@ export const AuthService = {
     await RefreshTokenRepository.create({
       userId: user._id.toString(),
       token: newRefreshToken,
-      expiresAt
+      expiresAt,
     });
 
     return { accessToken, refreshToken: newRefreshToken };
@@ -88,5 +87,5 @@ export const AuthService = {
 
   async logoutAll(userId: string): Promise<void> {
     await RefreshTokenRepository.deleteByUserId(userId);
-  }
+  },
 };
