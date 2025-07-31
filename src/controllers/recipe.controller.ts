@@ -134,4 +134,16 @@ export const RecipeController = {
       next(error);
     }
   },
+  async getSuggestedRecipe(req: Request, res: Response, next: NextFunction) {
+    try {
+      const suggestion = await RecipeService.generateSuggestedRecipe();
+      console.log(suggestion);
+      if (!suggestion) {
+        throw new BadRequestError("Invalid recipe suggestion from AI");
+      }
+      return successResponse(res, { recipe: suggestion });
+    } catch (err) {
+      next(err);
+    }
+  },
 };

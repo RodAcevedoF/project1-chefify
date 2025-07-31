@@ -10,8 +10,4 @@ router.post("/recipes", uploadDataFile, AdminController.importRecipes);
 router.post("/ingredients", uploadDataFile, AdminController.importIngredients);
 router.get("/users", AdminController.getUsers);
 
-// adminRoutes.get("/users", AdminController.getAllUsers);
-// adminRoutes.delete("/users/:id", AdminController.deleteUser);
-// adminRoutes.post("/feature-recipe", AdminController.featureRecipe);
-
 export default router;

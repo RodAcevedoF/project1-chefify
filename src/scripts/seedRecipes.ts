@@ -1,6 +1,11 @@
 import { connect, disconnect } from "mongoose";
 import { Recipe, Ingredient } from "../models";
-import { seedRecipes, seedIngredients } from "../data";
+import {
+  seedRecipes,
+  seedIngredients,
+  RecipeCategories,
+  type RecipeCategory,
+} from "../data";
 import { RecipeInputSchema, IngredientInputSchema } from "../schemas";
 import "dotenv/config";
 
@@ -22,7 +27,7 @@ export const runSeed = async () => {
       }),
       Ingredient.collection.drop().catch((e) => {
         console.warn("Couldn't drop Ingredient:", e.message);
-      })
+      }),
     ]);
     console.log("Dropped collections");
 
@@ -63,10 +68,13 @@ export const runSeed = async () => {
 
     const cleanedRecipes = seedRecipes.map((r) => ({
       ...r,
+      categories: (r.categories ?? []).filter((cat) =>
+        RecipeCategories.includes(cat as RecipeCategory)
+      ),
       ingredients: r.ingredients.map(({ ingredient, quantity }) => ({
         ingredient,
-        quantity
-      }))
+        quantity,
+      })),
     }));
 
     const insertedRecipes = [];

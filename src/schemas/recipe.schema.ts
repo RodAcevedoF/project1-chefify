@@ -1,5 +1,6 @@
 import { Schema } from "mongoose";
 import { z } from "zod";
+import { RecipeCategories, RecipeCategoryEnum } from "../data";
 
 export const recipeSchema = new Schema<IRecipe>(
   {
@@ -16,7 +17,11 @@ export const recipeSchema = new Schema<IRecipe>(
       },
     ],
     instructions: { type: [String], required: true },
-    categories: { type: [String], required: false, default: [] },
+    categories: {
+      type: [String],
+      enum: RecipeCategories,
+      default: [],
+    },
     imgUrl: { type: String, required: false },
     imgPublicId: { type: String, required: false },
     servings: { type: Number },
@@ -37,7 +42,7 @@ export const RecipeInputSchema = z
     title: z.string().min(1).trim(),
     ingredients: z.array(IngredientRecipeSchema).min(1),
     instructions: z.array(z.string().min(1).trim()).min(1),
-    categories: z.array(z.string().trim()).optional(),
+    categories: z.array(RecipeCategoryEnum).optional(),
     imgUrl: z.string().optional(),
     imgPublicId: z.string().optional(),
     userId: z.string().optional(),

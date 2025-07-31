@@ -46,6 +46,11 @@ export const IngredientService = {
     return await IngredientRepository.findByName(name);
   },
 
+  async getIngredienteByStricName(name: string): Promise<IIngredient | null> {
+    const found = IngredientRepository.findByStrictName(name);
+    return found;
+  },
+
   async updateIngredient(
     id: string,
     data: Partial<IIngredient>

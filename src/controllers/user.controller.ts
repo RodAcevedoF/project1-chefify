@@ -26,7 +26,7 @@ export const UserController = {
 
   async getById(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = req.params ? req.params.id : req.user?.id;
+      const id = req.params.id || req.user?.id;
       if (!id) throw new BadRequestError("ID is required");
       const user = await UserService.getUserById(id);
       return successResponse(res, user);
