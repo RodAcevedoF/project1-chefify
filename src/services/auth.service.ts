@@ -2,13 +2,23 @@ import { UserRepository, RefreshTokenRepository } from "../repositories";
 import { NotFoundError, UnauthorizedError, ForbiddenError } from "../errors";
 import { v4 as uuidv4 } from "uuid";
 import type { TokenPayload, LoginResponse } from "../types";
-import { bcryptWrapper, jwtWrapper } from "../utils";
+import { bcryptWrapper, jwtWrapper, sanitizeUser } from "../utils";
+import type { IUser, UserInput } from "../schemas";
+import { BadRequestError } from "../errors";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 const JWT_EXPIRES_IN = "1h";
 const REFRESH_EXPIRES_IN_DAYS = 7;
 
 export const AuthService = {
+  async register(data: UserInput): Promise<Omit<IUser, "password">> {
+    const existing = await UserRepository.findByEmail(data.email);
+    if (existing) throw new BadRequestError("Email already exists");
+    const userDoc = await UserRepository.createUser(data);
+    const resUser = sanitizeUser(userDoc);
+    return resUser;
+  },
+
   async login(email: string, password: string): Promise<LoginResponse> {
     const user = await UserRepository.findByEmail(email);
     if (!user) throw new NotFoundError("Email provided not found");

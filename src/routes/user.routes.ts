@@ -7,7 +7,12 @@ import { validateBody } from "../middlewares/validateBody";
 
 const router = Router();
 
-router.post("/", validateBody(UserInputSchema), UserController.create);
+router.post(
+  "/",
+  authenticate(["admin"]),
+  validateBody(UserInputSchema),
+  UserController.create
+);
 
 router.get("/", authenticate(), UserController.getById);
 router.get("/search/email", authenticate(), UserController.getByEmail);

@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { AuthService } from "../services";
+import { AuthService, UserService } from "../services";
 import { successResponse } from "../utils";
 import { BadRequestError, ValidationError } from "../errors";
 import {
@@ -8,8 +8,18 @@ import {
   REFRESH_COOKIE_NAME,
   REFRESH_COOKIE_OPTIONS,
 } from "../utils";
+import type { UserInput } from "../schemas";
 
 export const AuthController = {
+  async register(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = req.body as UserInput;
+      const created = await UserService.createUser(data);
+      return successResponse(res, created, 201);
+    } catch (error) {
+      next(error);
+    }
+  },
   async login(req: Request, res: Response, next: NextFunction) {
     try {
       const { email, password } = req.body;

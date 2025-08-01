@@ -5,6 +5,7 @@ import { authGuard } from "../middlewares/auth.guard";
 
 const router = Router();
 
+router.post("/register", AuthController.register);
 router.post("/login", AuthController.login);
 router.post("/logout", authenticate(), AuthController.logout);
 router.post("/refresh", AuthController.refreshToken);
