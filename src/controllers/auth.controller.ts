@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { AuthService, UserService } from "../services";
+import { AuthService } from "../services";
 import { successResponse } from "../utils";
 import { BadRequestError, ValidationError } from "../errors";
 import {
@@ -14,12 +14,27 @@ export const AuthController = {
   async register(req: Request, res: Response, next: NextFunction) {
     try {
       const data = req.body as UserInput;
-      const created = await UserService.createUser(data);
+      const created = await AuthService.register(data);
       return successResponse(res, created, 201);
     } catch (error) {
       next(error);
     }
   },
+
+  async verifyEmail(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { token } = req.query;
+      if (!token) throw new BadRequestError("Invalid token");
+      await AuthService.verifyEmail(token.toString());
+      return successResponse(res, {
+        message: "Email verified, proceed to login",
+        verified: true,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async login(req: Request, res: Response, next: NextFunction) {
     try {
       const { email, password } = req.body;
@@ -113,6 +128,35 @@ export const AuthController = {
         .clearCookie(REFRESH_COOKIE_NAME, COOKIE_OPTIONS);
 
       return successResponse(res, { message: "Logged out from all devices" });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async forgotPassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        throw new BadRequestError("Email is required");
+      }
+
+      await AuthService.forgotPassword(email);
+      return successResponse(res, { message: "Password reset link sent" });
+    } catch (error) {
+      next(error);
+    }
+  },
+  async resetPassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { token, newPassword } = req.body;
+
+      if (!token || !newPassword) {
+        throw new BadRequestError("Token and new password are required");
+      }
+
+      await AuthService.resetPassword(token, newPassword);
+
+      return successResponse(res, { message: "Password updated successfully" });
     } catch (error) {
       next(error);
     }

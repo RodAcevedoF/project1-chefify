@@ -1,5 +1,5 @@
 import app from "./src/app.js";
-import { connectDB } from "./src/config/mongoConfig.ts";
+import { connectDB } from "./src/config/mongo.config.ts";
 import config from "./src/config/config.ts";
 
 async function startServer() {
