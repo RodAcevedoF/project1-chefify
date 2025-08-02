@@ -7,10 +7,14 @@ Chefify es una API RESTful construida con **Node.js**, **Express**, **MongoDB At
 ## ✨ Características Principales
 
 - Autenticación segura con JWT + Refresh Token
+- Verificación de email mediante token.
+- Flujo de reseteo de password
 - Middleware de roles (admin/user)
 - Subida y eliminación de imágenes en Cloudinary
 - Relación entre usuarios y recetas
-- Semilla para poblar colecciones
+- Seed para poblar colecciones
+- Seed para inicialización de admin
+- Creación de recetas originales mediante integración con OpenAI.
 - Protección contra duplicados en arrays
 
 ---
@@ -46,6 +50,13 @@ CLOUDINARY_API_KEY=your_key
 CLOUDINARY_API_SECRET=your_secret
 BASE_ROUTE=chefify/api/v1
 NODE_ENV=development
+JWT_EXPIRES_IN="<Ex: "1h">";
+REFRESH_EXPIRES_IN_DAYS=<Ex: 14>;
+OPENAI_API_KEY=your_key
+SMTP_HOST=your_smtp
+SMTP_PORT=port
+SMTP_USER=user_account
+SMTP_PASS=smtp_pass
 ```
 
 ---
@@ -65,12 +76,17 @@ POST    /auth/logout
 POST    /auth/refresh
 POST    /auth/logout-all
 POST    /auth/logout-all/:id   (Solo admin)
+GET     /auth/verify-email
+GET     /auth/forgot-password
+POST    /auth/reset-password
 ```
 
 Los tokens se gestionan mediante cookies seguras:
 
 - `accessToken`: expira en 1h
 - `refreshToken`: expira en 7 días
+
+Otros tokens como los de verificación y reset se manejan en DB.
 
 ---
 
@@ -80,26 +96,41 @@ Los tokens se gestionan mediante cookies seguras:
 
 ```ts
 {
-  email: string,
-  password: string (hashed),
-  role: "user" | "admin",
-  image: {
-    public_id: string,
-    url: string
-  },
-  recipes: ObjectId[] // Relación con recetas
-}
+    _id: string,
+    name: string,
+    email: string,
+    password: string,
+    foodPreference: string,
+    savedRecipes: string[],
+    imgUrl: string,
+    imgPublicId: string,
+    role: string ("user", "admin"),
+    iaUsage: iaUsageSchema,
+    emailVerificationToken: string, ,
+    emailVerificationExpires: Date,
+    resetPasswordToken: string,
+    resetPasswordExpires: Date,
+    isVerified: Boolean,
+  }
 ```
 
 ### Receta (Recipe)
 
 ```ts
 {
-  title: string,
-  description: string,
-  ingredients: ObjectId[],
-  owner: ObjectId (Usuario)
-}
+    _id: string,
+    userId: string (ref user),
+    title: String,
+    ingredients: IngredientRecipe,
+    instructions: string[],
+    categories: {
+    type: string[],
+    imgUrl: string,
+    imgPublicId: string,
+    servings: number,
+    prepTime: number ,
+    utensils: string[],
+  }
 ```
 
 ---
@@ -110,6 +141,7 @@ Los tokens se gestionan mediante cookies seguras:
 
 ```
 GET     /user               (admin o el mismo usuario)
+GET     /user/:id           (admin)
 GET     /user/:id           (admin)
 PATCH   /user/:id           (admin o el mismo usuario)
 DELETE  /user/:id           (admin o el mismo usuario)
