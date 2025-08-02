@@ -32,3 +32,9 @@ export interface SendEmailOptions {
     link: string;
   };
 }
+
+export type ingredientPromptType = {
+  name: string;
+  unit: "unit" | "gr" | "ml" | "tsp" | "tbsp" | "cloves";
+  quantity: number;
+};

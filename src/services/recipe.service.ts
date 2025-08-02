@@ -116,8 +116,6 @@ export const RecipeService = {
         "Missing or invalid 'ingredients' array from AI"
       );
     }
-    console.log("AI ingredients:", raw.ingredients);
-
     const ingredientResults = await Promise.all(
       raw.ingredients.map(
         async ({ name, quantity, unit }: ingredientPromptType) => {

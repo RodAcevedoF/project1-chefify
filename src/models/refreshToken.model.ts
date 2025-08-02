@@ -4,5 +4,5 @@ import { RefreshTokenSchema, type IRefreshToken } from "../schemas";
 export const RefreshToken = model<IRefreshToken>(
   "RefreshToken",
   RefreshTokenSchema,
-  "refresh_tokens" // nombre explícito para la colección
+  "refresh_tokens"
 );
