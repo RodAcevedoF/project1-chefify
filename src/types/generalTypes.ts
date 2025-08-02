@@ -23,3 +23,12 @@ export type LoginResponse = {
   accessToken: string;
   refreshToken: string;
 };
+
+export type EmailType = "VERIFICATION" | "RESET_PASSWORD";
+export interface SendEmailOptions {
+  to: string;
+  type: EmailType;
+  payload: {
+    link: string;
+  };
+}

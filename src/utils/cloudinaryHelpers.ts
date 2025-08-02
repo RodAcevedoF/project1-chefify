@@ -1,4 +1,4 @@
-import { cloudinary } from "../config/cloudinaryConfig";
+import { cloudinary } from "../config/cloudinary.config";
 import { UploadError } from "../errors";
 import streamifier from "streamifier";
 

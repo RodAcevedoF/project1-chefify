@@ -8,7 +8,8 @@ const adminData = {
   name: process.env.ADMIN_NAME,
   email: process.env.ADMIN_EMAIL,
   password: process.env.ADMIN_PASS,
-  role: "admin"
+  role: "admin",
+  isVerified: true,
 };
 
 export const runAdminSeed = async () => {
@@ -30,7 +31,7 @@ export const runAdminSeed = async () => {
     } else {
       await User.create({
         ...parsed.data,
-        password: hashedPassword
+        password: hashedPassword,
       });
       console.log("Admin created.");
     }

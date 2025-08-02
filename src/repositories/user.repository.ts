@@ -22,6 +22,24 @@ export const UserRepository = {
     return await User.findOne({ email });
   },
 
+  async findByEmailToken(
+    emailVerificationToken: string
+  ): Promise<HydratedDocument<IUser> | null> {
+    return await User.findOne({
+      emailVerificationToken,
+      emailVerificationExpires: { $gt: new Date() },
+    });
+  },
+
+  async findByResetToken(
+    resetPasswordToken: string
+  ): Promise<HydratedDocument<IUser> | null> {
+    return await User.findOne({
+      resetPasswordToken,
+      resetPasswordExpires: { $gt: new Date() },
+    });
+  },
+
   async updateById(
     id: string,
     data: Partial<Omit<UserInput, "role">>
