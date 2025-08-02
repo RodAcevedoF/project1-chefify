@@ -17,11 +17,10 @@ export const AuthService = {
     const existing = await UserRepository.findByEmail(data.email);
     if (existing) throw new BadRequestError("Email already exists");
     const verificationToken = uuidv4();
-
     const userDoc = await UserRepository.createUser({
       ...data,
       emailVerificationToken: verificationToken,
-      emailVerificationExpires: new Date(Date.now() + 1000 * 60 * 60 * 24),
+      emailVerificationExpires: new Date(Date.now() + 1000 * 60 * 60 * 4),
     });
 
     const verifyLink = `http://localhost:3000${BASE}/auth/verify-email?token=${verificationToken}`;
@@ -38,13 +37,36 @@ export const AuthService = {
 
   async verifyEmail(token: string): Promise<void> {
     const user = await UserRepository.findByEmailToken(token);
-    if (!user) throw new NotFoundError("User not found");
-    const data = {
-      isVerified: true,
-      emailVerificationToken: undefined,
-      emailVerificationExpires: undefined,
-    };
-    await UserRepository.updateById(user._id, data);
+    if (user) {
+      await UserRepository.updateById(user._id, {
+        isVerified: true,
+        emailVerificationToken: undefined,
+        emailVerificationExpires: undefined,
+      });
+      return;
+    }
+
+    const expiredUser =
+      await UserRepository.findByEmailTokenIgnoreExpiry(token);
+    if (expiredUser && !expiredUser.isVerified) {
+      const newToken = uuidv4();
+      await UserRepository.updateById(expiredUser._id, {
+        emailVerificationToken: newToken,
+        emailVerificationExpires: new Date(Date.now() + 1000 * 60 * 60 * 4),
+      });
+      const verifyLink = `http://localhost:3000${BASE}/auth/verify-email?token=${newToken}`;
+      await sendEmail({
+        to: expiredUser.email,
+        type: "VERIFICATION",
+        payload: { link: verifyLink },
+      });
+
+      throw new BadRequestError(
+        "Verification token expired. A new link has been sent to your email."
+      );
+    }
+
+    throw new NotFoundError("User not found");
   },
 
   async login(email: string, password: string): Promise<LoginResponse> {

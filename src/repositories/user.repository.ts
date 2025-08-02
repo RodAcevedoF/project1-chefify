@@ -31,6 +31,12 @@ export const UserRepository = {
     });
   },
 
+  async findByEmailTokenIgnoreExpiry(
+    emailVerificationToken: string
+  ): Promise<HydratedDocument<IUser> | null> {
+    return await User.findOne({ emailVerificationToken });
+  },
+
   async findByResetToken(
     resetPasswordToken: string
   ): Promise<HydratedDocument<IUser> | null> {
