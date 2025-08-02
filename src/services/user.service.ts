@@ -31,12 +31,6 @@ export const UserService = {
     return sanitizedUser;
   },
 
-  async getUserByToken(token: string): Promise<Omit<IUser, "password">> {
-    const user = await UserRepository.findByToken(token);
-    if (!user) throw new NotFoundError("User not found for token");
-    return sanitizeUser(user);
-  },
-
   async updateUser(
     id: string,
     data: Partial<Omit<UserInput, "role">>
