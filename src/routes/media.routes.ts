@@ -7,7 +7,7 @@ const router = Router();
 
 router.post(
   "/:type",
-  authenticate(),
+  authenticate(["admin"]),
   uploadMedia(),
   MediaController.uploadEntityImage
 );

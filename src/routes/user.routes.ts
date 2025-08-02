@@ -15,7 +15,7 @@ router.post(
 );
 
 router.get("/", authenticate(), UserController.getById);
-router.get("/search/email", authenticate(), UserController.getByEmail);
+router.get("/email", authenticate(), UserController.getByEmail);
 router.get("/:id", authenticate(["admin"]), userGuard, UserController.getById);
 
 router.patch("/", authenticate(), UserController.update);
