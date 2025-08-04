@@ -15,7 +15,7 @@ Chefify es una API RESTful construida con **Node.js**, **Express**, **MongoDB At
 - Seed para poblar colecciones
 - Seed para inicialización de admin
 - Creación de recetas originales mediante integración con OpenAI.
-- Protección contra duplicados en arrays
+- Validación con Zod. 
 
 ---
 
