@@ -161,4 +161,15 @@ export const AuthController = {
       next(error);
     }
   },
+
+  async status(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req?.user?.id;
+      if (!userId) throw new BadRequestError('User ID not found');
+      const data = await AuthService.status(userId);
+      successResponse(res, data);
+    } catch (error) {
+      next(error);
+    }
+  },
 };
