@@ -161,26 +161,4 @@ export const AuthController = {
       next(error);
     }
   },
-
-  /**
-   * Devuelve el estado de autenticación y verificación del usuario
-   */
-  async status(req: Request, res: Response, next: NextFunction) {
-    try {
-      // Si no hay usuario autenticado (token inválido o ausente)
-      if (!req.user) {
-        return successResponse(res, { loggedIn: false, verified: false });
-      }
-      const user = await AuthService.status(req.user.id);
-      if (!user) {
-        return successResponse(res, { loggedIn: false, verified: false });
-      }
-      return successResponse(res, {
-        loggedIn: true,
-        verified: user.isVerified,
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
 };

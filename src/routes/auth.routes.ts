@@ -13,8 +13,6 @@ router.post('/logout-all', authenticate(), AuthController.logoutAll);
 router.get('/verify-email', AuthController.verifyEmail);
 router.get('/forgot-password', AuthController.forgotPassword);
 router.post('/reset-password', AuthController.resetPassword);
-// Ruta para comprobar si el usuario está logueado y verificado
-router.get('/status', authenticate(), AuthController.status);
 
 router.post(
   '/logout-all/:id',

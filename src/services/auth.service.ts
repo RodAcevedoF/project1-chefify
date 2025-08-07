@@ -173,10 +173,4 @@ export const AuthService = {
     };
     await UserRepository.updateById(user._id, data);
   },
-
-  async status(userId: string): Promise<Partial<IUser>> {
-    const user = await UserRepository.findById(userId);
-    if (!user) throw new NotFoundError('User not found');
-    return sanitizeUser(user);
-  },
 };
