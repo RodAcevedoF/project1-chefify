@@ -1,6 +1,6 @@
 # Chefify - Backend API
 
-Chefify es una API RESTful construida con **Node.js**, **Express**, **MongoDB Atlas** y Bun que gestiona usuarios, recetas, ingredientes e imágenes. Incluye autenticación JWT, control de roles (admin/user), subida de imágenes con Cloudinary, y un sistema robusto de refresco de tokens.
+Chefify es una API RESTful construida con **Node.js**, **Express**, **MongoDB Atlas**, **Bun** y **TypeScript** que gestiona usuarios, recetas, ingredientes e imágenes. Incluye autenticación JWT, control de roles (admin/user), subida de imágenes con Cloudinary, un sistema robusto de refresco de tokens, verificación de email e integración con la API de OpenAI para la generación de recetas mediante LLM. Testing con **Bun** y **Supertest**. 
 
 ---
 
@@ -15,7 +15,7 @@ Chefify es una API RESTful construida con **Node.js**, **Express**, **MongoDB At
 - Seed para poblar colecciones
 - Seed para inicialización de admin
 - Creación de recetas originales mediante integración con OpenAI.
-- Protección contra duplicados en arrays
+- Validación con Zod. 
 
 ---
 
