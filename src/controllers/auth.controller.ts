@@ -1,14 +1,14 @@
-import type { Request, Response, NextFunction } from "express";
-import { AuthService } from "../services";
-import { successResponse } from "../utils";
-import { BadRequestError, ValidationError } from "../errors";
+import type { Request, Response, NextFunction } from 'express';
+import { AuthService } from '../services';
+import { successResponse } from '../utils';
+import { BadRequestError, ValidationError } from '../errors';
 import {
   COOKIE_OPTIONS,
   COOKIE_NAME,
   REFRESH_COOKIE_NAME,
   REFRESH_COOKIE_OPTIONS,
-} from "../utils";
-import type { UserInput } from "../schemas";
+} from '../utils';
+import type { UserInput } from '../schemas';
 
 export const AuthController = {
   async register(req: Request, res: Response, next: NextFunction) {
@@ -24,10 +24,10 @@ export const AuthController = {
   async verifyEmail(req: Request, res: Response, next: NextFunction) {
     try {
       const { token } = req.query;
-      if (!token) throw new BadRequestError("Invalid token");
+      if (!token) throw new BadRequestError('Invalid token');
       await AuthService.verifyEmail(token.toString());
       return successResponse(res, {
-        message: "Email verified, proceed to login",
+        message: 'Email verified, proceed to login',
         verified: true,
       });
     } catch (error) {
@@ -40,7 +40,7 @@ export const AuthController = {
       const { email, password } = req.body;
 
       if (!email || !password) {
-        throw new BadRequestError("Email and password are required");
+        throw new BadRequestError('Email and password are required');
       }
 
       const { accessToken, refreshToken } = await AuthService.login(
@@ -50,14 +50,14 @@ export const AuthController = {
 
       if (!COOKIE_NAME || !REFRESH_COOKIE_NAME)
         throw new ValidationError(
-          "COOKIE_NAME environment variable is not defined"
+          'COOKIE_NAME environment variable is not defined'
         );
 
       res
         .cookie(COOKIE_NAME, accessToken, COOKIE_OPTIONS)
         .cookie(REFRESH_COOKIE_NAME, refreshToken, REFRESH_COOKIE_OPTIONS);
 
-      return successResponse(res, { message: "Login successful" });
+      return successResponse(res, { message: 'Login successful' });
     } catch (error) {
       next(error);
     }
@@ -68,7 +68,7 @@ export const AuthController = {
       const refreshToken = req.cookies?.refreshToken;
       if (!COOKIE_NAME || !REFRESH_COOKIE_NAME) {
         throw new ValidationError(
-          "COOKIE_NAME environment variable is not defined"
+          'COOKIE_NAME environment variable is not defined'
         );
       }
 
@@ -80,7 +80,7 @@ export const AuthController = {
         .clearCookie(COOKIE_NAME, COOKIE_OPTIONS)
         .clearCookie(REFRESH_COOKIE_NAME, COOKIE_OPTIONS);
 
-      return successResponse(res, { message: "Logged out successfully" });
+      return successResponse(res, { message: 'Logged out successfully' });
     } catch (error) {
       next(error);
     }
@@ -90,20 +90,20 @@ export const AuthController = {
     try {
       const oldToken = req.cookies?.refreshToken;
       if (!oldToken) {
-        throw new BadRequestError("Refresh token not provided");
+        throw new BadRequestError('Refresh token not provided');
       }
 
       const { accessToken, refreshToken } = await AuthService.refresh(oldToken);
       if (!COOKIE_NAME || !REFRESH_COOKIE_NAME)
         throw new ValidationError(
-          "COOKIE_NAME environment variable is not defined"
+          'COOKIE_NAME environment variable is not defined'
         );
 
       res
         .cookie(COOKIE_NAME, accessToken, COOKIE_OPTIONS)
         .cookie(REFRESH_COOKIE_NAME, refreshToken, REFRESH_COOKIE_OPTIONS);
 
-      return successResponse(res, { message: "Access token refreshed" });
+      return successResponse(res, { message: 'Access token refreshed' });
     } catch (error) {
       next(error);
     }
@@ -113,21 +113,21 @@ export const AuthController = {
     try {
       const userId = req.params.id || req.user?.id;
       if (!userId) {
-        throw new ValidationError("User ID not found in request");
+        throw new ValidationError('User ID not found in request');
       }
 
       await AuthService.logoutAll(userId);
 
       if (!COOKIE_NAME || !REFRESH_COOKIE_NAME)
         throw new ValidationError(
-          "COOKIE_NAME environment variable is not defined"
+          'COOKIE_NAME environment variable is not defined'
         );
 
       res
         .clearCookie(COOKIE_NAME, COOKIE_OPTIONS)
         .clearCookie(REFRESH_COOKIE_NAME, COOKIE_OPTIONS);
 
-      return successResponse(res, { message: "Logged out from all devices" });
+      return successResponse(res, { message: 'Logged out from all devices' });
     } catch (error) {
       next(error);
     }
@@ -137,11 +137,11 @@ export const AuthController = {
     try {
       const { email } = req.body;
       if (!email) {
-        throw new BadRequestError("Email is required");
+        throw new BadRequestError('Email is required');
       }
 
       await AuthService.forgotPassword(email);
-      return successResponse(res, { message: "Password reset link sent" });
+      return successResponse(res, { message: 'Password reset link sent' });
     } catch (error) {
       next(error);
     }
@@ -151,12 +151,34 @@ export const AuthController = {
       const { token, newPassword } = req.body;
 
       if (!token || !newPassword) {
-        throw new BadRequestError("Token and new password are required");
+        throw new BadRequestError('Token and new password are required');
       }
 
       await AuthService.resetPassword(token, newPassword);
 
-      return successResponse(res, { message: "Password updated successfully" });
+      return successResponse(res, { message: 'Password updated successfully' });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * Devuelve el estado de autenticación y verificación del usuario
+   */
+  async status(req: Request, res: Response, next: NextFunction) {
+    try {
+      // Si no hay usuario autenticado (token inválido o ausente)
+      if (!req.user) {
+        return successResponse(res, { loggedIn: false, verified: false });
+      }
+      const user = await AuthService.status(req.user.id);
+      if (!user) {
+        return successResponse(res, { loggedIn: false, verified: false });
+      }
+      return successResponse(res, {
+        loggedIn: true,
+        verified: user.isVerified,
+      });
     } catch (error) {
       next(error);
     }

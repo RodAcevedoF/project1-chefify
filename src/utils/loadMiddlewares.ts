@@ -13,7 +13,8 @@ export const loadMiddlewares = (app: Express) => {
   // Control CORS (personalizable)
   app.use(
     cors({
-      origin: "*", // Cambia en producción
+      origin: process.env.FRONTEND_URL, // Cambia en producción
+      credentials: true, // Permite enviar cookies, no olvidar!
       methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization"],
     })

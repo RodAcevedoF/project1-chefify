@@ -1,21 +1,21 @@
-import { UserRepository, RefreshTokenRepository } from "../repositories";
-import { NotFoundError, UnauthorizedError, ForbiddenError } from "../errors";
-import { v4 as uuidv4 } from "uuid";
-import type { TokenPayload, LoginResponse } from "../types";
-import { bcryptWrapper, jwtWrapper, sanitizeUser } from "../utils";
-import type { IUser, UserInput } from "../schemas";
-import { BadRequestError } from "../errors";
-import { sendEmail } from "./email.service";
+import { UserRepository, RefreshTokenRepository } from '../repositories';
+import { NotFoundError, UnauthorizedError, ForbiddenError } from '../errors';
+import { v4 as uuidv4 } from 'uuid';
+import type { TokenPayload, LoginResponse } from '../types';
+import { bcryptWrapper, jwtWrapper, sanitizeUser } from '../utils';
+import type { IUser, UserInput } from '../schemas';
+import { BadRequestError } from '../errors';
+import { sendEmail } from './email.service';
 
 const JWT_SECRET = process.env.JWT_SECRET!;
-const JWT_EXPIRES_IN = "1h";
+const JWT_EXPIRES_IN = '1h';
 const REFRESH_EXPIRES_IN_DAYS = 7;
-const BASE = process.env.BASE_ROUTE || "/chefify/api/v1";
+const BASE = process.env.BASE_ROUTE || '/chefify/api/v1';
 
 export const AuthService = {
-  async register(data: UserInput): Promise<Omit<IUser, "password">> {
+  async register(data: UserInput): Promise<Omit<IUser, 'password'>> {
     const existing = await UserRepository.findByEmail(data.email);
-    if (existing) throw new BadRequestError("Email already exists");
+    if (existing) throw new BadRequestError('Email already exists');
     const verificationToken = uuidv4();
     const userDoc = await UserRepository.createUser({
       ...data,
@@ -27,7 +27,7 @@ export const AuthService = {
 
     await sendEmail({
       to: userDoc.email,
-      type: "VERIFICATION",
+      type: 'VERIFICATION',
       payload: { link: verifyLink },
     });
 
@@ -57,26 +57,26 @@ export const AuthService = {
       const verifyLink = `http://localhost:3000${BASE}/auth/verify-email?token=${newToken}`;
       await sendEmail({
         to: expiredUser.email,
-        type: "VERIFICATION",
+        type: 'VERIFICATION',
         payload: { link: verifyLink },
       });
 
       throw new BadRequestError(
-        "Verification token expired. A new link has been sent to your email."
+        'Verification token expired. A new link has been sent to your email.'
       );
     }
 
-    throw new NotFoundError("User not found");
+    throw new NotFoundError('User not found');
   },
 
   async login(email: string, password: string): Promise<LoginResponse> {
     const user = await UserRepository.findByEmail(email);
-    if (!user) throw new NotFoundError("Email provided not found");
+    if (!user) throw new NotFoundError('Email provided not found');
     if (!user.isVerified) {
-      throw new UnauthorizedError("Email not verified");
+      throw new UnauthorizedError('Email not verified');
     }
     const isValid = await bcryptWrapper.compare(password, user.password);
-    if (!isValid) throw new UnauthorizedError("Invalid credentials");
+    if (!isValid) throw new UnauthorizedError('Invalid credentials');
 
     const payload: TokenPayload = {
       id: user._id,
@@ -105,15 +105,15 @@ export const AuthService = {
   async refresh(oldToken: string): Promise<LoginResponse> {
     const stored = await RefreshTokenRepository.findByToken(oldToken);
     if (!stored)
-      throw new UnauthorizedError("Refresh token not found or revoked");
+      throw new UnauthorizedError('Refresh token not found or revoked');
 
     if (stored.expiresAt < new Date()) {
       await RefreshTokenRepository.deleteByToken(oldToken);
-      throw new ForbiddenError("Refresh token expired");
+      throw new ForbiddenError('Refresh token expired');
     }
 
     const user = await UserRepository.findById(stored.userId);
-    if (!user) throw new NotFoundError("User not found");
+    if (!user) throw new NotFoundError('User not found');
     await RefreshTokenRepository.deleteByToken(oldToken);
     const payload: TokenPayload = {
       id: user._id,
@@ -145,7 +145,7 @@ export const AuthService = {
 
   async forgotPassword(email: string) {
     const user = await UserRepository.findByEmail(email);
-    if (!user) throw new NotFoundError("User not found");
+    if (!user) throw new NotFoundError('User not found');
 
     const token = uuidv4();
     const data = {
@@ -158,19 +158,25 @@ export const AuthService = {
 
     await sendEmail({
       to: user.email,
-      type: "RESET_PASSWORD",
+      type: 'RESET_PASSWORD',
       payload: { link: resetLink },
     });
   },
 
   async resetPassword(token: string, newPassword: string): Promise<void> {
     const user = await UserRepository.findByResetToken(token);
-    if (!user) throw new BadRequestError("Invalid or expired token");
+    if (!user) throw new BadRequestError('Invalid or expired token');
     const data = {
       resetPasswordToken: null,
       resetPasswordExpires: null,
       password: newPassword,
     };
     await UserRepository.updateById(user._id, data);
+  },
+
+  async status(userId: string): Promise<Partial<IUser>> {
+    const user = await UserRepository.findById(userId);
+    if (!user) throw new NotFoundError('User not found');
+    return sanitizeUser(user);
   },
 };

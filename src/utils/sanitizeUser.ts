@@ -1,10 +1,3 @@
-/* import type { HydratedDocument } from "mongoose";
-import type { IUser } from "../schemas";
-
-export function sanitizeUser(user: HydratedDocument<IUser>) {
-  const { password, ...userWithoutPassword } = user.toObject();
-  return userWithoutPassword;
-} */
 import type { HydratedDocument } from "mongoose";
 import type { IUser } from "../schemas";
 
