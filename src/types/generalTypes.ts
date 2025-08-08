@@ -1,4 +1,4 @@
-import type { Request } from "express";
+import type { Request } from 'express';
 
 export interface ExtendedRequest extends Request {
   fileUrl?: string;
@@ -24,7 +24,7 @@ export type LoginResponse = {
   refreshToken: string;
 };
 
-export type EmailType = "VERIFICATION" | "RESET_PASSWORD";
+export type EmailType = 'VERIFICATION' | 'RESET_PASSWORD';
 export interface SendEmailOptions {
   to: string;
   type: EmailType;
@@ -35,6 +35,6 @@ export interface SendEmailOptions {
 
 export type ingredientPromptType = {
   name: string;
-  unit: "unit" | "gr" | "ml" | "tsp" | "tbsp" | "cloves";
+  unit: 'unit' | 'gr' | 'ml' | 'tsp' | 'tbsp' | 'cloves';
   quantity: number;
 };
