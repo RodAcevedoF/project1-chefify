@@ -1,12 +1,12 @@
-import { suggestRecipePrompt } from "../data";
-import type { ingredientPromptType } from "../types";
-import { BadRequestError, ConflictError, NotFoundError } from "../errors";
-import { Recipe } from "../models";
-import { RecipeRepository } from "../repositories";
-import { RecipeInputSchema, type RecipeInput, type IRecipe } from "../schemas";
-import { getSuggestedRecipe } from "../utils";
-import { IngredientService } from "./ingredient.service";
-import { MediaService } from "./media.service";
+import { suggestRecipePrompt } from '../data';
+import type { ingredientPromptType } from '../types';
+import { BadRequestError, ConflictError, NotFoundError } from '../errors';
+import { Recipe } from '../models';
+import { RecipeRepository } from '../repositories';
+import { RecipeInputSchema, type RecipeInput, type IRecipe } from '../schemas';
+import { getSuggestedRecipe } from '../utils';
+import { IngredientService } from './ingredient.service';
+import { MediaService } from './media.service';
 
 export const RecipeService = {
   async createRecipe(data: RecipeInput): Promise<IRecipe> {
@@ -14,7 +14,7 @@ export const RecipeService = {
 
     if (existing) {
       throw new ConflictError(
-        "A recipe with this title already exists (case-insensitive check)."
+        'A recipe with this title already exists (case-insensitive check).'
       );
     }
 
@@ -25,7 +25,7 @@ export const RecipeService = {
 
     if (missingIngredients.length) {
       throw new BadRequestError(
-        `Missing ingredient IDs: ${missingIngredients.join(", ")}`
+        `Missing ingredient IDs: ${missingIngredients.join(', ')}`
       );
     }
 
@@ -42,27 +42,15 @@ export const RecipeService = {
       if (parsed.success) {
         validRecipes.push(parsed.data);
       } else {
-        console.warn("Invalid recipe skipped:", parsed.error);
+        console.warn('Invalid recipe skipped:', parsed.error);
       }
     }
 
     return await RecipeRepository.insertMany(validRecipes);
   },
 
-  async getAllRecipes(): Promise<IRecipe[]> {
-    return await RecipeRepository.findAll();
-  },
-
   async getRecipeById(id: string): Promise<IRecipe | null> {
     return await RecipeRepository.findById(id);
-  },
-
-  async getRecipesByTitle(title: string): Promise<IRecipe[]> {
-    return await RecipeRepository.findByTitle(title);
-  },
-
-  async getRecipesByCategory(category: string): Promise<IRecipe[]> {
-    return await RecipeRepository.findByCategory(category);
   },
 
   async updateRecipe(id: string, data: Partial<IRecipe>): Promise<IRecipe> {
@@ -72,13 +60,13 @@ export const RecipeService = {
         id
       );
       if (existing) {
-        throw new ConflictError("Another recipe already uses this title.");
+        throw new ConflictError('Another recipe already uses this title.');
       }
     }
 
     const updated = await RecipeRepository.updateById(id, data);
     if (!updated) {
-      throw new NotFoundError("Recipe not found");
+      throw new NotFoundError('Recipe not found');
     }
 
     return updated;
@@ -86,12 +74,12 @@ export const RecipeService = {
 
   async deleteRecipe(id: string): Promise<IRecipe> {
     const recipe = RecipeRepository.findById(id);
-    if (!recipe) throw new NotFoundError("Recipe not found for deletion");
-    await MediaService.deleteEntityImage(id, "recipe");
+    if (!recipe) throw new NotFoundError('Recipe not found for deletion');
+    await MediaService.deleteEntityImage(id, 'recipe');
 
     const deleted = await RecipeRepository.deleteById(id);
     if (!deleted) {
-      throw new NotFoundError("Recipe not found");
+      throw new NotFoundError('Recipe not found');
     }
     return deleted;
   },
@@ -119,8 +107,8 @@ export const RecipeService = {
     const ingredientResults = await Promise.all(
       raw.ingredients.map(
         async ({ name, quantity, unit }: ingredientPromptType) => {
-          if (!name || typeof quantity !== "number") {
-            throw new BadRequestError("Invalid ingredient format from AI");
+          if (!name || typeof quantity !== 'number') {
+            throw new BadRequestError('Invalid ingredient format from AI');
           }
 
           const existing =
@@ -155,8 +143,8 @@ export const RecipeService = {
 
     const parsed = RecipeInputSchema.safeParse(recipeData);
     if (!parsed.success) {
-      console.warn("Zod validation failed for AI recipe:", parsed.error);
-      throw new BadRequestError("Invalid recipe format after processing");
+      console.warn('Zod validation failed for AI recipe:', parsed.error);
+      throw new BadRequestError('Invalid recipe format after processing');
     }
 
     return parsed.data;

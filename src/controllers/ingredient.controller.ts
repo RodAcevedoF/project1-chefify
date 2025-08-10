@@ -1,8 +1,8 @@
-import type { Request, Response, NextFunction } from "express";
-import { IngredientService } from "../services";
-import { successResponse } from "../utils";
-import type { IngredientInput } from "../schemas";
-import { BadRequestError, NotFoundError } from "../errors";
+import type { Request, Response, NextFunction } from 'express';
+import { IngredientService } from '../services';
+import { successResponse } from '../utils';
+import type { IngredientInput } from '../schemas';
+import { BadRequestError, NotFoundError } from '../errors';
 
 export const IngredientController = {
   async create(req: Request, res: Response, next: NextFunction) {
@@ -20,42 +20,18 @@ export const IngredientController = {
       next(error);
     }
   },
-  async getAll(req: Request, res: Response, next: NextFunction) {
-    try {
-      const recipes = await IngredientService.getAllIngredients();
-      return successResponse(res, recipes);
-    } catch (error) {
-      next(error);
-    }
-  },
 
   async getById(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      if (!id) throw new BadRequestError("Invalid ID format");
+      if (!id) throw new BadRequestError('Invalid ID format');
       const ingredient = await IngredientService.getIngredientById(id);
 
       if (!ingredient) {
-        throw new NotFoundError("Ingredient not found");
+        throw new NotFoundError('Ingredient not found');
       }
 
       return successResponse(res, ingredient);
-    } catch (error) {
-      next(error);
-    }
-  },
-  async getByName(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { name } = req.query;
-      if (typeof name !== "string" || name.trim().length < 1) {
-        throw new BadRequestError("Missing or invalid ingredient name");
-      }
-
-      const results = await IngredientService.getIngredienteByName(name);
-      if (!results.length)
-        throw new NotFoundError(`No ingredients found for "${name}"`);
-
-      return successResponse(res, results, 200);
     } catch (error) {
       next(error);
     }
@@ -64,7 +40,7 @@ export const IngredientController = {
   async update(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      if (!id) throw new BadRequestError("Invalid ID");
+      if (!id) throw new BadRequestError('Invalid ID');
       const updated = await IngredientService.updateIngredient(id, req.body);
       return successResponse(res, updated);
     } catch (error) {
@@ -75,9 +51,33 @@ export const IngredientController = {
   async delete(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      if (!id) throw new BadRequestError("Invalid ID");
+      if (!id) throw new BadRequestError('Invalid ID');
       const deleted = await IngredientService.deleteIngredient(id);
       return successResponse(res, deleted);
+    } catch (error) {
+      next(error);
+    }
+  },
+  async getFiltered(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { userId, name, sort = 'desc', limit = 10, page = 1 } = req.query;
+
+      const query: Record<string, unknown> = {};
+      if (userId) query.userId = userId;
+      if (name) query.name = { $regex: name, $options: 'i' };
+
+      const sortOption = sort === 'asc' ? 1 : -1;
+      const limitNumber = Number(limit);
+      const skipNumber = (Number(page) - 1) * limitNumber;
+
+      const ingredients = await IngredientService.getFilteredIngredients(
+        query,
+        sortOption,
+        limitNumber,
+        skipNumber
+      );
+
+      return successResponse(res, ingredients);
     } catch (error) {
       next(error);
     }

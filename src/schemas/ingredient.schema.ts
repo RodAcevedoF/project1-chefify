@@ -1,9 +1,9 @@
-import { z } from "zod";
-import { Schema } from "mongoose";
+import { z } from 'zod';
+import { Schema } from 'mongoose';
 
 export const IngredientSchema = new Schema(
   {
-    userId: { type: Schema.Types.ObjectId, ref: "User", required: false },
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: false },
     name: { type: String, required: true, unique: true, trim: true },
     unit: { type: String, required: true },
   },
@@ -15,7 +15,7 @@ export const IngredientInputSchema = z
     _id: z.string().length(24).optional(),
     userId: z.string().length(24).optional(),
     name: z.string().min(2).trim(),
-    unit: z.enum(["gr", "ml", "tsp", "tbsp", "cloves", "unit"]),
+    unit: z.enum(['gr', 'ml', 'tsp', 'tbsp', 'cloves', 'unit']),
   })
   .strict();
 

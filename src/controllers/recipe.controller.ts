@@ -27,19 +27,6 @@ export const RecipeController = {
     }
   },
 
-  async getAll(req: Request, res: Response, next: NextFunction) {
-    try {
-      const recipes = await RecipeService.getAllRecipes();
-
-      if (!recipes || recipes.length === 0) {
-        throw new NotFoundError('Recipes not found');
-      }
-      return successResponse(res, recipes);
-    } catch (error) {
-      next(error);
-    }
-  },
-
   async getById(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
@@ -79,9 +66,28 @@ export const RecipeController = {
     }
   },
 
-  async getFiltered(req: Request, res: Response, next: NextFunction) {
+  async getSuggestedRecipe(req: Request, res: Response, next: NextFunction) {
     try {
-      const { category, userId, title, sort = 'desc', limit, skip } = req.query;
+      const suggestion = await RecipeService.generateSuggestedRecipe();
+      if (!suggestion) {
+        throw new BadRequestError('Invalid recipe suggestion from AI');
+      }
+      return successResponse(res, { recipe: suggestion });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async get(req: Request, res: Response, next: NextFunction) {
+    try {
+      const {
+        category,
+        userId,
+        title,
+        sort = 'desc',
+        limit = 10,
+        page = 1,
+      } = req.query;
 
       const query: Record<string, unknown> = {};
 
@@ -90,8 +96,8 @@ export const RecipeController = {
       if (title) query.title = { $regex: title, $options: 'i' };
 
       const sortOption = sort === 'asc' ? 1 : -1;
-      const limitNumber = limit ? Number(limit) : 10;
-      const skipNumber = skip ? Number(skip) : 0;
+      const limitNumber = Number(limit);
+      const skipNumber = (Number(page) - 1) * limitNumber;
 
       const recipes = await RecipeService.getFilteredRecipes(
         query,
@@ -103,51 +109,6 @@ export const RecipeController = {
       return successResponse(res, recipes);
     } catch (error) {
       next(error);
-    }
-  },
-  async getByTitle(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { title } = req.query;
-      if (typeof title !== 'string' || title.trim().length < 1) {
-        throw new BadRequestError('Missing or invalid recipe title');
-      }
-
-      const results = await RecipeService.getRecipesByTitle(title);
-      if (!results.length)
-        throw new NotFoundError(`No recipes found for "${title}"`);
-
-      return successResponse(res, results, 200);
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  async getByCategory(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { category } = req.query;
-      if (typeof category !== 'string' || category.trim().length < 1) {
-        throw new BadRequestError('Missing or invalid recipe category');
-      }
-
-      const results = await RecipeService.getRecipesByCategory(category);
-      if (!results.length)
-        throw new NotFoundError(`No recipes found for category "${category}"`);
-
-      return successResponse(res, results, 200);
-    } catch (error) {
-      next(error);
-    }
-  },
-  async getSuggestedRecipe(req: Request, res: Response, next: NextFunction) {
-    try {
-      const suggestion = await RecipeService.generateSuggestedRecipe();
-      console.log(suggestion);
-      if (!suggestion) {
-        throw new BadRequestError('Invalid recipe suggestion from AI');
-      }
-      return successResponse(res, { recipe: suggestion });
-    } catch (err) {
-      next(err);
     }
   },
 };
