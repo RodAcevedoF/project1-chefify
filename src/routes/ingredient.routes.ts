@@ -9,17 +9,13 @@ const router = Router();
 router.use(authenticate());
 
 router.post(
-  '/',
-  validateBody(IngredientInputSchema),
-  IngredientController.create
+	'/',
+	validateBody(IngredientInputSchema),
+	IngredientController.create,
 );
-
-router.get('/', IngredientController.getFiltered);
-
-router.get('/:id', IngredientController.getById);
-
+router.get('/', IngredientController.get);
+router.get('/:id', IngredientController.get);
 router.patch('/:id', ingredientGuard, IngredientController.update);
-
 router.delete('/:id', ingredientGuard, IngredientController.delete);
 
 export default router;

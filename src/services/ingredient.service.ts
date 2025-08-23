@@ -2,80 +2,79 @@ import { ConflictError, NotFoundError } from '../errors';
 import { Ingredient } from '../models';
 import { IngredientRepository } from '../repositories';
 import {
-  IngredientInputSchema,
-  type IngredientInput,
-  type IIngredient,
+	IngredientInputSchema,
+	type IngredientInput,
+	type IIngredient,
 } from '../schemas';
+import type { SearchParams } from '../types';
 
 export const IngredientService = {
-  async importIngredientsFromCsv(
-    ingredients: Partial<IngredientInput>[]
-  ): Promise<IIngredient[]> {
-    const validIngredients: IngredientInput[] = [];
+	async importIngredientsFromCsv(
+		ingredients: Partial<IngredientInput>[],
+	): Promise<IIngredient[]> {
+		const validIngredients: IngredientInput[] = [];
 
-    for (const ingredient of ingredients) {
-      const parsed = IngredientInputSchema.safeParse(ingredient);
-      if (parsed.success) {
-        validIngredients.push(parsed.data);
-      } else {
-        console.warn('Invalid ingredient skipped:', parsed.error);
-      }
-    }
+		for (const ingredient of ingredients) {
+			const parsed = IngredientInputSchema.safeParse(ingredient);
+			if (parsed.success) {
+				validIngredients.push(parsed.data);
+			} else {
+				console.warn('Invalid ingredient skipped:', parsed.error);
+			}
+		}
+		return await IngredientRepository.insertMany(validIngredients);
+	},
 
-    return await IngredientRepository.insertMany(validIngredients);
-  },
-  async createIngredient(data: IngredientInput): Promise<IIngredient> {
-    const existing = await IngredientRepository.findByStrictName(data.name);
+	async createIngredient(data: IngredientInput): Promise<IIngredient> {
+		const existing = await IngredientRepository.findByStrictName(data.name);
+		if (existing) {
+			throw new ConflictError(
+				'An ingredient with this name already exists (case-insensitive check).',
+			);
+		}
+		return await IngredientRepository.create(data);
+	},
 
-    if (existing) {
-      throw new ConflictError(
-        'An ingredient with this name already exists (case-insensitive check).'
-      );
-    }
-    return await IngredientRepository.create(data);
-  },
+	async getIngredienteByStricName(name: string): Promise<IIngredient | null> {
+		const found = IngredientRepository.findByStrictName(name);
+		return found;
+	},
 
-  async getIngredientById(id: string): Promise<IIngredient | null> {
-    return await IngredientRepository.findById(id);
-  },
+	async getIngredients(
+		params: SearchParams,
+	): Promise<IIngredient | IIngredient[]> {
+		const { id, query = {}, sort = -1, skip = 0, limit = 10 } = params;
+		if (id) {
+			const recipe = await IngredientRepository.findById(id);
+			if (!recipe) throw new NotFoundError('Recipe not found');
+			return recipe;
+		}
+		return await Ingredient.find(query)
+			.sort({ createdAt: sort })
+			.skip(skip)
+			.limit(limit);
+	},
 
-  async getIngredienteByStricName(name: string): Promise<IIngredient | null> {
-    const found = IngredientRepository.findByStrictName(name);
-    return found;
-  },
+	async updateIngredient(
+		id: string,
+		data: Partial<IIngredient>,
+	): Promise<IIngredient> {
+		const updated = await IngredientRepository.updateById(id, data);
+		if (!updated) throw new NotFoundError('Ingredient not found');
+		return updated;
+	},
 
-  async getFilteredIngredients(
-    query: Record<string, unknown>,
-    sort: 1 | -1,
-    limit: number,
-    skip: number
-  ): Promise<IIngredient[]> {
-    return await Ingredient.find(query)
-      .sort({ createdAt: sort })
-      .skip(skip)
-      .limit(limit);
-  },
-
-  async updateIngredient(
-    id: string,
-    data: Partial<IIngredient>
-  ): Promise<IIngredient> {
-    const updated = await IngredientRepository.updateById(id, data);
-    if (!updated) throw new NotFoundError('Ingredient not found');
-    return updated;
-  },
-
-  async deleteIngredient(id: string): Promise<IIngredient> {
-    const deleted = await IngredientRepository.deleteById(id);
-    if (!deleted) throw new NotFoundError('Ingredient not found');
-    return deleted;
-  },
-  async validateIngredientIds(ids: string[]): Promise<string[]> {
-    const found = await Promise.all(
-      ids.map((id) => IngredientRepository.findById(id))
-    );
-    const existingIds = found.filter(Boolean).map((i) => i!._id.toString());
-    const missing = ids.filter((id) => !existingIds.includes(id));
-    return missing;
-  },
+	async deleteIngredient(id: string): Promise<IIngredient> {
+		const deleted = await IngredientRepository.deleteById(id);
+		if (!deleted) throw new NotFoundError('Ingredient not found');
+		return deleted;
+	},
+	async validateIngredientIds(ids: string[]): Promise<string[]> {
+		const found = await Promise.all(
+			ids.map((id) => IngredientRepository.findById(id)),
+		);
+		const existingIds = found.filter(Boolean).map((i) => i!._id.toString());
+		const missing = ids.filter((id) => !existingIds.includes(id));
+		return missing;
+	},
 };
