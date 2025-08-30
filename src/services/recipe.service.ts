@@ -9,7 +9,7 @@ import { IngredientService } from './ingredient.service';
 import { MediaService } from './media.service';
 
 export const RecipeService = {
-	async createRecipe(data: RecipeInput): Promise<IRecipe> {
+	async createRecipe(data: RecipeInput): Promise<void> {
 		const existing = await RecipeRepository.findByStrictTitle(data.title);
 		if (existing) {
 			throw new ConflictError(
@@ -24,7 +24,7 @@ export const RecipeService = {
 				`Missing ingredient IDs: ${missingIngredients.join(', ')}`,
 			);
 		}
-		return await RecipeRepository.create(data);
+		await RecipeRepository.create(data);
 	},
 
 	async importRecipesFromCsv(
@@ -42,7 +42,7 @@ export const RecipeService = {
 		return await RecipeRepository.insertMany(validRecipes);
 	},
 
-	async updateRecipe(id: string, data: Partial<IRecipe>): Promise<IRecipe> {
+	async updateRecipe(id: string, data: Partial<IRecipe>): Promise<void> {
 		if (data.title) {
 			const existing = await RecipeRepository.findByStrictTitleExcludingId(
 				data.title,
@@ -52,23 +52,18 @@ export const RecipeService = {
 				throw new ConflictError('Another recipe already uses this title.');
 			}
 		}
-		const updated = await RecipeRepository.updateById(id, data);
-		if (!updated) {
+		const recipe = await RecipeRepository.findById(id);
+		if (!recipe) {
 			throw new NotFoundError('Recipe not found');
 		}
-
-		return updated;
+		await RecipeRepository.updateById(id, data);
 	},
 
-	async deleteRecipe(id: string): Promise<IRecipe> {
+	async deleteRecipe(id: string): Promise<void> {
 		const recipe = RecipeRepository.findById(id);
 		if (!recipe) throw new NotFoundError('Recipe not found for deletion');
 		await MediaService.deleteEntityImage(id, 'recipe');
-		const deleted = await RecipeRepository.deleteById(id);
-		if (!deleted) {
-			throw new NotFoundError('Recipe not found');
-		}
-		return deleted;
+		await RecipeRepository.deleteById(id);
 	},
 
 	async getRecipes(params: SearchParams): Promise<IRecipe | IRecipe[]> {
@@ -97,14 +92,20 @@ export const RecipeService = {
 					if (!name || typeof quantity !== 'number') {
 						throw new BadRequestError('Invalid ingredient format from AI');
 					}
-					const existing =
+					let existing =
 						await IngredientService.getIngredienteByStricName(name);
-					const ingredient =
-						existing ??
+					existing ??
 						(await IngredientService.createIngredient({
 							name: name,
 							unit: unit,
 						}));
+					const ingredient =
+						await IngredientService.getIngredienteByStricName(name);
+					if (!ingredient)
+						throw new BadRequestError(
+							'Failed to create or retrieve ingredient',
+						);
+
 					return {
 						ingredient: ingredient._id.toString(),
 						quantity,

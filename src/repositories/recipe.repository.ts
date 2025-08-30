@@ -3,8 +3,8 @@ import type { IRecipe, RecipeInput } from '../schemas';
 import { escapeRegex } from '../utils';
 
 export const RecipeRepository = {
-	async create(data: RecipeInput): Promise<IRecipe> {
-		return await Recipe.create(data);
+	async create(data: RecipeInput): Promise<void> {
+		await Recipe.create(data);
 	},
 
 	async insertMany(recipes: RecipeInput[]): Promise<IRecipe[]> {
@@ -33,11 +33,8 @@ export const RecipeRepository = {
 		return await Recipe.findOne({ title: regex, _id: { $ne: excludeId } });
 	},
 
-	async updateById(
-		id: string,
-		data: Partial<IRecipe>,
-	): Promise<IRecipe | null> {
-		return await Recipe.findByIdAndUpdate(id, data, {
+	async updateById(id: string, data: Partial<IRecipe>): Promise<void> {
+		await Recipe.findByIdAndUpdate(id, data, {
 			new: true,
 			runValidators: true,
 		})
@@ -46,7 +43,7 @@ export const RecipeRepository = {
 			.lean();
 	},
 
-	async deleteById(id: string): Promise<IRecipe | null> {
-		return await Recipe.findByIdAndDelete(id);
+	async deleteById(id: string): Promise<void> {
+		await Recipe.findByIdAndDelete(id);
 	},
 };

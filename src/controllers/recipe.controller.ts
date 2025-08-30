@@ -20,8 +20,8 @@ export const RecipeController = {
 				userId: req.user.id,
 			};
 
-			const created = await RecipeService.createRecipe(newRecipe);
-			return successResponse(res, created, 201);
+			await RecipeService.createRecipe(newRecipe);
+			return successResponse(res, 'Recipe successfully created', 201);
 		} catch (error) {
 			next(error);
 		}
@@ -32,8 +32,8 @@ export const RecipeController = {
 			const { id } = req.params;
 			if (!id) throw new BadRequestError('Invalid ID');
 			const updateData = req.body;
-			const updated = await RecipeService.updateRecipe(id, updateData);
-			return successResponse(res, updated);
+			await RecipeService.updateRecipe(id, updateData);
+			return successResponse(res, 'Successfully updated', 204);
 		} catch (error) {
 			next(error);
 		}
@@ -43,8 +43,8 @@ export const RecipeController = {
 		try {
 			const { id } = req.params;
 			if (!id) throw new BadRequestError('Invalid ID');
-			const deleted = await RecipeService.deleteRecipe(id);
-			return successResponse(res, deleted);
+			await RecipeService.deleteRecipe(id);
+			return successResponse(res, 'Recipe deleted', 204);
 		} catch (error) {
 			next(error);
 		}

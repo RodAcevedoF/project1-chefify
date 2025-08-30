@@ -13,8 +13,8 @@ export const IngredientController = {
 				unit: body.unit,
 				userId: req.user?.id,
 			};
-			const created = await IngredientService.createIngredient(newIngredient);
-			return successResponse(res, created, 201);
+			await IngredientService.createIngredient(newIngredient);
+			return successResponse(res, 'Ingredient successfully created', 201);
 		} catch (error) {
 			console.error(error);
 			next(error);
@@ -50,8 +50,8 @@ export const IngredientController = {
 		try {
 			const { id } = req.params;
 			if (!id) throw new BadRequestError('Invalid ID');
-			const updated = await IngredientService.updateIngredient(id, req.body);
-			return successResponse(res, updated);
+			await IngredientService.updateIngredient(id, req.body);
+			return successResponse(res, 'Ingredient successfully updated');
 		} catch (error) {
 			next(error);
 		}
@@ -61,8 +61,8 @@ export const IngredientController = {
 		try {
 			const { id } = req.params;
 			if (!id) throw new BadRequestError('Invalid ID');
-			const deleted = await IngredientService.deleteIngredient(id);
-			return successResponse(res, deleted);
+			await IngredientService.deleteIngredient(id);
+			return successResponse(res, 'Ingredient deleted', 204);
 		} catch (error) {
 			next(error);
 		}
