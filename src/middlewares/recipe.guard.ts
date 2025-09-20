@@ -1,8 +1,8 @@
-import { RecipeService } from "../services";
-import { ownership } from "./ownership";
+import { RecipeRepository } from '../repositories';
+import { ownership } from './ownership';
 
 export const recipeGuard = ownership({
-  findById: () => RecipeService.getRecipeById,
-  field: "userId",
-  resourceName: "recipe",
+	findById: () => RecipeRepository.findById,
+	field: 'userId',
+	resourceName: 'recipe',
 });
