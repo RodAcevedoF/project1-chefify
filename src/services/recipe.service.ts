@@ -75,7 +75,7 @@ export const RecipeService = {
 		}
 		return await Recipe.find(query)
 			.populate('ingredients.ingredient')
-			.populate('userId', 'name')
+			.populate('userId')
 			.sort({ createdAt: sort })
 			.skip(skip)
 			.limit(limit);
