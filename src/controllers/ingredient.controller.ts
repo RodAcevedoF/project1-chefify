@@ -20,14 +20,17 @@ export const IngredientController = {
 		const { id } = req.params;
 		const { category, userId, name, sort, limit, page } = req.query;
 
+		if (id) {
+			const ingredient = await IngredientService.getIngredients({ id });
+			if (!ingredient) throw new NotFoundError('Ingredient not found');
+			return successResponse(res, ingredient);
+		}
 		const query: Record<string, unknown> = {};
 		if (category) query.categories = category;
 		if (userId) query.userId = userId;
 		if (name) query.name = { $regex: name, $options: 'i' };
 
-		if (!id) throw new BadRequestError('Invalid ID format');
 		const ingredient = await IngredientService.getIngredients({
-			id,
 			query,
 			sort: sort === 'asc' ? 1 : -1,
 			limit: limit ? Number(limit) : 10,

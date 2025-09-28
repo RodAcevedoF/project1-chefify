@@ -50,13 +50,18 @@ export const RecipeController = {
 		const { id } = req.params;
 		const { category, userId, title, sort, limit, page } = req.query;
 
+		if (id) {
+			const recipe = await RecipeService.getRecipes({ id });
+			if (!recipe) throw new NotFoundError('Recipe not found');
+			return successResponse(res, recipe);
+		}
+
 		const query: Record<string, unknown> = {};
 		if (category) query.categories = category;
 		if (userId) query.userId = userId;
 		if (title) query.title = { $regex: title, $options: 'i' };
 
 		const recipes = await RecipeService.getRecipes({
-			id,
 			query,
 			sort: sort === 'asc' ? 1 : -1,
 			limit: limit ? Number(limit) : 10,
