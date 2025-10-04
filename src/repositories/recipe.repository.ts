@@ -21,7 +21,10 @@ export const RecipeRepository = {
 	async findByStrictTitle(title: string): Promise<IRecipe | null> {
 		const escaped = escapeRegex(title);
 		const regex = new RegExp(`^${escaped}$`, 'i');
-		return await Recipe.findOne({ title: regex });
+		return await Recipe.findOne({ title: regex })
+			.populate('ingredients.ingredient')
+			.populate('userId', 'name')
+			.lean();
 	},
 
 	async findByStrictTitleExcludingId(
