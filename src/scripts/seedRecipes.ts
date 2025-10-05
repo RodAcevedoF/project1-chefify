@@ -124,6 +124,7 @@ export const runSeed = async () => {
 						const created = await Ingredient.create({
 							name: candidate,
 							userId: String(admin._id),
+							unit: 'unit', // default unit when auto-creating
 						});
 						foundId = created._id.toString();
 						// keep map updated so future lookups find it by name
