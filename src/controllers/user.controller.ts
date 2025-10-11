@@ -38,7 +38,7 @@ export const UserController = {
 		if (!id) throw new BadRequestError('ID is required');
 
 		await UserService.updateUser(id, data);
-		return successResponse(res, 'User updated');
+		return successResponse(res, 'User updated', 204);
 	},
 
 	async delete(req: Request, res: Response) {
