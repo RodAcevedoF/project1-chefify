@@ -11,11 +11,6 @@ export const UserController = {
 		return successResponse(res, 'User created', 201);
 	},
 
-	async getAll(req: Request, res: Response) {
-		const users = await UserService.getAllUsers();
-		return successResponse(res, users);
-	},
-
 	async getById(req: Request, res: Response) {
 		const id = req.params.id || req.user?.id;
 		if (!id) throw new BadRequestError('ID is required');
