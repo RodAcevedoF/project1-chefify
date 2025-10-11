@@ -119,15 +119,13 @@ export const runSeed = async () => {
 					if (byName) foundId = byName;
 				}
 				if (!foundId) {
-					// If an ingredient wasn't found by id or name, create it on-the-fly
 					try {
 						const created = await Ingredient.create({
 							name: candidate,
 							userId: String(admin._id),
-							unit: 'unit', // default unit when auto-creating
+							unit: 'unit',
 						});
 						foundId = created._id.toString();
-						// keep map updated so future lookups find it by name
 						ingredientMap.set(candidate.toLowerCase().trim(), foundId);
 						console.log(
 							`Auto-created missing ingredient '${candidate}' with id ${foundId}`,
