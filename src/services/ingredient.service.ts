@@ -60,6 +60,8 @@ export const IngredientService = {
 		id: string,
 		data: Partial<IIngredient>,
 	): Promise<void> {
+		const existing = await IngredientRepository.findById(id);
+		if (!existing) throw new NotFoundError('Ingredient not found');
 		await IngredientRepository.updateById(id, data);
 	},
 
