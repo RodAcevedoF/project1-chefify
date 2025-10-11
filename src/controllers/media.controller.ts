@@ -1,12 +1,12 @@
-import type { ExtendedRequest } from '../types';
+import type { ExtendedRequest } from '@/types';
 import type { Response } from 'express';
-import { MediaService } from '../services';
+import { MediaService } from '@/services';
 import {
 	mediaEntityConfig,
 	successResponse,
 	type MediaEntityType,
-} from '../utils';
-import { BadRequestError } from '../errors';
+} from '@/utils';
+import { BadRequestError } from '@/errors';
 
 export const MediaController = {
 	async uploadEntityImage(req: ExtendedRequest, res: Response) {
