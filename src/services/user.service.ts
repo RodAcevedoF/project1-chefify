@@ -5,13 +5,12 @@ import { MediaService } from './media.service';
 import { sanitizeUser } from '../utils';
 
 export const UserService = {
-	async createUser(data: UserInput): Promise<Omit<IUser, 'password'>> {
+	async createUser(data: UserInput): Promise<void> {
 		const existing = await UserRepository.findByEmail(data.email);
 		if (existing) throw new BadRequestError('Email already exists');
 		await UserRepository.createUser(data);
 		const created = await UserRepository.findByEmail(data.email);
 		if (!created) throw new BadRequestError('Failed to create user');
-		return sanitizeUser(created);
 	},
 
 	async getAllUsers(): Promise<IUser[]> {
@@ -43,19 +42,14 @@ export const UserService = {
 		return sanitizeUser(updated);
 	},
 
-	async deleteUser(id: string): Promise<Omit<IUser, 'password'> | null> {
+	async deleteUser(id: string): Promise<void> {
 		const user = await UserRepository.findById(id);
 		if (!user) throw new NotFoundError('User not found for deletion');
 		await MediaService.deleteEntityImage(id, 'user');
 		await UserRepository.deleteById(id);
-		// return null to indicate deletion, or return sanitized deleted user if repo returns it
-		return null;
 	},
 
-	async saveRecipe(
-		userId: string,
-		recipeId: string,
-	): Promise<Omit<IUser, 'password'>> {
+	async saveRecipe(userId: string, recipeId: string): Promise<void> {
 		const user = await UserRepository.findById(userId);
 		if (!user) throw new NotFoundError('User not found');
 
@@ -67,20 +61,16 @@ export const UserService = {
 		await UserRepository.addSavedRecipe(userId, recipeId);
 		const updated = await UserRepository.findById(userId);
 		if (!updated) throw new NotFoundError('User not found after saving recipe');
-		return sanitizeUser(updated);
 	},
 
-	async deleteRecipe(
-		userId: string,
-		recipeId: string,
-	): Promise<Omit<IUser, 'password'> | null> {
+	async deleteRecipe(userId: string, recipeId: string): Promise<void> {
 		const user = await UserRepository.findById(userId);
 		if (!user) throw new NotFoundError('User not found');
 
 		await UserRepository.removeSavedRecipe(userId, recipeId);
 		const updated = await UserRepository.findById(userId);
-		if (!updated) return null;
-		return sanitizeUser(updated);
+		if (!updated)
+			throw new NotFoundError('User not found after removing recipe');
 	},
 
 	async getSavedRecipes(userId: string): Promise<IUser> {

@@ -46,8 +46,9 @@ test('createUser: create user if email does not previously exist', async () => {
 		name: 'Test',
 	};
 
-	const created = await UserService.createUser(input as any);
-	expect(created.email).toBe('new@example.com');
+	await UserService.createUser(input as any);
+	const created = await UserRepository.findByEmail(input.email);
+	expect(created?.email).toBe('new@example.com');
 	expect(UserRepository.createUser).toHaveBeenCalled();
 });
 
@@ -87,8 +88,9 @@ test('saveRecipe: save recipe if not previously created', async () => {
 	UserRepository.findById = mock(() => Promise.resolve(mockUser));
 	UserRepository.addSavedRecipe = mock(() => Promise.resolve());
 
-	const updated = await UserService.saveRecipe('123', 'rec123');
-	expect(updated.savedRecipes).toContain('rec123');
+	await UserService.saveRecipe('123', 'rec123');
+	const updated = await UserRepository.findById(mockUser._id.toString());
+	expect(updated!.savedRecipes).toContain('rec123');
 });
 
 test('deleteRecipe: delete saved recipe', async () => {
@@ -98,11 +100,9 @@ test('deleteRecipe: delete saved recipe', async () => {
 		),
 	);
 	UserRepository.removeSavedRecipe = mock(() => Promise.resolve());
-
-	const updated = await UserService.deleteRecipe('123', 'rec123');
-	if (!updated) throw new Error('User not found');
-	if (!updated.savedRecipes) throw new Error('User do not have saved recipes');
-	expect(updated.savedRecipes.length).toBe(0);
+	await UserService.deleteRecipe('123', 'rec123');
+	const updatedUser = await UserRepository.findById(mockUser._id.toString());
+	expect(updatedUser?.savedRecipes?.length).toBe(0);
 });
 
 test('getSavedRecipes: return user own saved recipes list', async () => {
