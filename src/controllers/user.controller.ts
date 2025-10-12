@@ -86,4 +86,11 @@ export const UserController = {
 			message: 'Recipe removed from saved list',
 		});
 	},
+
+	async getCreatedRecipes(req: Request, res: Response) {
+		const id = req.user?.id;
+		if (!id) throw new BadRequestError('User ID is required');
+		const recipes = await UserService.getCreatedRecipes(id);
+		return successResponse(res, recipes);
+	},
 };
