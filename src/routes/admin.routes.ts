@@ -13,6 +13,7 @@ router.post('/recipes', uploadDataFile, AdminController.importRecipes);
 router.post('/ingredients', uploadDataFile, AdminController.importIngredients);
 router.get('/users', AdminController.getUsers);
 router.get('/:id', UserController.getById);
+router.get('/email/:email', UserController.getByEmail);
 router.patch('/:id', UserController.update);
 router.delete('/:id', UserController.delete);
 
