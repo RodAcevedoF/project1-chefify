@@ -49,13 +49,6 @@ export const UserController = {
 		return successResponse(res, 'User deleted');
 	},
 
-	async getUserRecipes(req: Request, res: Response) {
-		const id = req.user?.id;
-		if (!id) throw new BadRequestError('User ID is required');
-		const recipes = await UserService.getCreatedRecipes(id);
-		return successResponse(res, recipes);
-	},
-
 	async getSavedRecipes(req: Request, res: Response) {
 		const id = req.user?.id;
 		if (!id) throw new BadRequestError('User ID is required');

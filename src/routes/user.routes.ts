@@ -9,7 +9,7 @@ router.get('/email', authenticate(), UserController.getByEmail);
 router.patch('/', authenticate(), UserController.update);
 router.delete('/', authenticate(), UserController.delete);
 router.get('/saved-recipes', authenticate(), UserController.getSavedRecipes);
-router.get('/my-recipes', authenticate(), UserController.getUserRecipes);
+router.get('/my-recipes', authenticate(), UserController.getCreatedRecipes);
 router.post(
 	'/save-recipe/:recipeId',
 	authenticate(),
@@ -19,11 +19,6 @@ router.delete(
 	'/remove-recipe/:recipeId',
 	authenticate(),
 	UserController.deleteRecipe,
-);
-router.get(
-	'/created-recipes',
-	authenticate(),
-	UserController.getCreatedRecipes,
 );
 
 export default router;
