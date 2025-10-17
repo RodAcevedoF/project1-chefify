@@ -19,6 +19,7 @@ export const userSchema = new Schema(
 		savedRecipes: [{ type: Schema.Types.ObjectId, ref: 'Recipe' }],
 		imgUrl: { type: String, required: false },
 		imgPublicId: { type: String, required: false },
+		shortBio: { type: String, required: false, maxlength: 160 },
 		role: {
 			type: String,
 			enum: ['user', 'admin'],
