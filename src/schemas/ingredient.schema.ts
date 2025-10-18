@@ -32,3 +32,7 @@ export type IIngredient = IngredientInput & {
 	createdAt: Date;
 	updatedAt: Date;
 };
+
+IngredientSchema.index({ name: 1 });
+IngredientSchema.index({ name: 'text' });
+IngredientSchema.index({ createdAt: -1 });

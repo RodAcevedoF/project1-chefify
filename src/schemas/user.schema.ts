@@ -92,3 +92,7 @@ userSchema.pre('save', async function (next) {
 		next(err as Error);
 	}
 });
+
+userSchema.index({ role: 1 });
+userSchema.index({ createdAt: -1 });
+userSchema.index({ name: 'text' });
