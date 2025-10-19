@@ -3,7 +3,11 @@ import { UserRepository } from '../../src/repositories';
 import { MediaService } from '../../src/services/media.service';
 import bcrypt from 'bcryptjs';
 import type { IUser, IRecipe } from '../../src/schemas';
-import { beforeEach, expect, test, mock } from 'bun:test';
+import { beforeEach, afterEach, expect, test, mock } from 'bun:test';
+import {
+	snapshotModule,
+	prepareModuleForMocks,
+} from '../test-utils/reset-mocks';
 import type { HydratedDocument } from 'mongoose';
 import { createMockUserDoc } from '../mocks/createMockUser';
 
@@ -19,25 +23,33 @@ const mockUser = {
 } as HydratedDocument<IUser>;
 
 console.log(mockUser);
+
+const restoreUserRepo = snapshotModule(UserRepository);
+const restoreMediaService = snapshotModule(MediaService);
+
 beforeEach(() => {
-	UserRepository.findByEmail = undefined as any;
-	UserRepository.createUser = undefined as any;
-	UserRepository.findAll = undefined as any;
-	UserRepository.findById = undefined as any;
-	UserRepository.updateById = undefined as any;
-	UserRepository.deleteById = undefined as any;
-	UserRepository.addSavedRecipe = undefined as any;
-	UserRepository.removeSavedRecipe = undefined as any;
-	UserRepository.getSavedRecipes = undefined as any;
-	UserRepository.getCreatedRecipes = undefined as any;
-	MediaService.deleteEntityImage = undefined as any;
+	prepareModuleForMocks(UserRepository, [
+		'findByEmail',
+		'createUser',
+		'findAll',
+		'findById',
+		'updateById',
+		'deleteById',
+		'addSavedRecipe',
+		'removeSavedRecipe',
+		'getSavedRecipes',
+		'getCreatedRecipes',
+	]);
+	prepareModuleForMocks(MediaService, ['deleteEntityImage']);
+});
+
+afterEach(() => {
+	restoreUserRepo();
+	restoreMediaService();
 });
 
 test('createUser: create user if email does not previously exist', async () => {
 	UserRepository.findByEmail = mock(() => Promise.resolve(null));
-	UserRepository.createUser = mock((data) =>
-		Promise.resolve({ ...mockUser, ...data }),
-	);
 	(bcrypt.hash as any) = mock(() => Promise.resolve('hashed'));
 
 	const input = {
@@ -45,6 +57,14 @@ test('createUser: create user if email does not previously exist', async () => {
 		password: '123456',
 		name: 'Test',
 	};
+
+	// When createUser is invoked, update the findByEmail mock so subsequent
+	// calls return the created user (service calls findByEmail after create).
+	UserRepository.createUser = mock((data) => {
+		const created = { ...mockUser, ...data } as any;
+		UserRepository.findByEmail = mock(() => Promise.resolve(created));
+		return Promise.resolve(created);
+	});
 
 	await UserService.createUser(input as any);
 	const created = await UserRepository.findByEmail(input.email);
@@ -66,11 +86,15 @@ test('getUserById: throw error if not found', async () => {
 });
 
 test('updateUser: must not allow role changes', async () => {
-	UserRepository.updateById = mock((id, data) =>
-		Promise.resolve({ ...mockUser, ...data }),
-	);
+	UserRepository.findById = mock(() => Promise.resolve(mockUser));
+	UserRepository.updateById = mock((id, data) => {
+		const updated = { ...mockUser, ...data } as any;
+		UserRepository.findById = mock(() => Promise.resolve(updated));
+		return Promise.resolve(updated);
+	});
+
 	const updated = await UserService.updateUser('123', {
-		email: 'updated@example.com', // esto será eliminado internamente
+		email: 'updated@example.com',
 	});
 	expect(updated.email).toBe('updated@example.com');
 });
@@ -86,7 +110,16 @@ test('deleteUser: delete user and associated image', async () => {
 
 test('saveRecipe: save recipe if not previously created', async () => {
 	UserRepository.findById = mock(() => Promise.resolve(mockUser));
-	UserRepository.addSavedRecipe = mock(() => Promise.resolve());
+
+	UserRepository.addSavedRecipe = mock(() => {
+		UserRepository.findById = mock(() =>
+			Promise.resolve({
+				...mockUser,
+				savedRecipes: [...(mockUser.savedRecipes || []), 'rec123'],
+			} as any),
+		);
+		return Promise.resolve();
+	});
 
 	await UserService.saveRecipe('123', 'rec123');
 	const updated = await UserRepository.findById(mockUser._id.toString());
@@ -99,7 +132,14 @@ test('deleteRecipe: delete saved recipe', async () => {
 			createMockUserDoc({ ...mockUser, savedRecipes: ['rec123'] }),
 		),
 	);
-	UserRepository.removeSavedRecipe = mock(() => Promise.resolve());
+
+	UserRepository.removeSavedRecipe = mock(() => {
+		UserRepository.findById = mock(() =>
+			Promise.resolve({ ...mockUser, savedRecipes: [] } as any),
+		);
+		return Promise.resolve();
+	});
+
 	await UserService.deleteRecipe('123', 'rec123');
 	const updatedUser = await UserRepository.findById(mockUser._id.toString());
 	expect(updatedUser?.savedRecipes?.length).toBe(0);

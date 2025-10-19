@@ -2,7 +2,11 @@ import { IngredientService } from '../../src/services/ingredient.service';
 import { IngredientRepository } from '../../src/repositories';
 import { type IIngredient, type IngredientInput } from '../../src/schemas';
 import { ConflictError, NotFoundError } from '../../src/errors';
-import { beforeEach, expect, test, mock } from 'bun:test';
+import { beforeEach, afterEach, expect, test, mock } from 'bun:test';
+import {
+	snapshotModule,
+	prepareModuleForMocks,
+} from '../test-utils/reset-mocks';
 
 const mockIngredient = {
 	_id: '64b5de2f8c9b1a3c8d4e5f62',
@@ -11,13 +15,21 @@ const mockIngredient = {
 	updatedAt: new Date(),
 } as IIngredient;
 
+const restoreIngredientRepo = snapshotModule(IngredientRepository);
+
 beforeEach(() => {
-	IngredientRepository.findByStrictName = undefined as any;
-	IngredientRepository.create = undefined as any;
-	IngredientRepository.insertMany = undefined as any;
-	IngredientRepository.updateById = undefined as any;
-	IngredientRepository.deleteById = undefined as any;
-	IngredientRepository.findById = undefined as any;
+	prepareModuleForMocks(IngredientRepository, [
+		'findByStrictName',
+		'create',
+		'insertMany',
+		'updateById',
+		'deleteById',
+		'findById',
+	]);
+});
+
+afterEach(() => {
+	restoreIngredientRepo();
 });
 
 test('createIngredient: throws ConflictError if name already exists', async () => {
@@ -68,6 +80,7 @@ test('importIngredientsFromCsv: save only valid ingredients', async () => {
 });
 
 test('updateIngredient: throws NotFoundError if not updated', async () => {
+	IngredientRepository.findById = mock(() => Promise.resolve(null));
 	IngredientRepository.updateById = mock(() => Promise.resolve());
 
 	await expect(

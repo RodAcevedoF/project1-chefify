@@ -24,7 +24,7 @@ Chickpea Stew,"[{""ingredient"":""64c333333333333333333331"",""quantity"":200},{
 					'Boil for 1 hour',
 					'Add spices and simmer',
 				],
-				categories: ['vegan', 'mediterranean'],
+				categories: ['Vegan', 'Mediterranean'] as any,
 				servings: 4,
 				prepTime: 15,
 				utensils: ['Pot', 'Spoon'],

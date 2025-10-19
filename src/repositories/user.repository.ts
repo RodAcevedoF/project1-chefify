@@ -60,6 +60,14 @@ export const UserRepository = {
 	async getCreatedRecipes(userId: string): Promise<IRecipe[]> {
 		return Recipe.find({ userId });
 	},
+
+	async incFollowersCount(userId: string, delta = 1): Promise<void> {
+		await User.findByIdAndUpdate(userId, { $inc: { followersCount: delta } });
+	},
+
+	async incFollowingCount(userId: string, delta = 1): Promise<void> {
+		await User.findByIdAndUpdate(userId, { $inc: { followingCount: delta } });
+	},
 	async findByEmailToken(
 		emailVerificationToken: string,
 	): Promise<HydratedDocument<IUser> | null> {

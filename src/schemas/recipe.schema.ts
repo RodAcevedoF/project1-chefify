@@ -6,6 +6,7 @@ export const recipeSchema = new Schema<IRecipe>(
 	{
 		userId: { type: Schema.Types.ObjectId, ref: 'User', required: false },
 		title: { type: String, required: true, unique: true },
+		likesCount: { type: Number, default: 0 },
 		ingredients: [
 			{
 				ingredient: {
@@ -39,6 +40,7 @@ export const IngredientRecipeSchema = z.object({
 
 export const RecipeInputSchema = z
 	.object({
+		likesCount: z.number().int().nonnegative().optional(),
 		title: z.string().min(1).trim(),
 		ingredients: z.array(IngredientRecipeSchema).min(1),
 		instructions: z.array(z.string().min(1).trim()).min(1),

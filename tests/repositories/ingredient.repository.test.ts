@@ -35,25 +35,20 @@ describe('IngredientRepository CRUD operations', () => {
 
 	it('should update an ingredient partially or fully', async () => {
 		await IngredientRepository.create(dummyIngredient);
-		const updated = (await IngredientRepository.updateById(
-			dummyIngredient._id!,
-			{
-				name: 'Black Garlic',
-			},
-		)) as any;
+		await IngredientRepository.updateById(dummyIngredient._id!, {
+			name: 'Black Garlic',
+		});
 
-		expect(updated).toBeDefined();
-		expect((updated as any).name).toBe('Black Garlic');
+		const fetched = await IngredientRepository.findById(dummyIngredient._id!);
+		expect(fetched).toBeDefined();
+		expect(fetched).not.toBeNull();
+		expect(fetched!?.name).toBe('Black Garlic');
 	});
 
 	it("should delete an ingredient and validate it's gone", async () => {
 		await IngredientRepository.create(dummyIngredient);
 
-		const deleted = (await IngredientRepository.deleteById(
-			dummyIngredient._id!,
-		)) as any;
-		expect(deleted).toBeDefined();
-		expect((deleted as any)._id.toString()).toBe(dummyIngredient._id!);
+		await IngredientRepository.deleteById(dummyIngredient._id!);
 
 		const refetch = await IngredientRepository.findById(dummyIngredient._id!);
 		expect(refetch).toBeNull();

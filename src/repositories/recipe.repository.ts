@@ -49,4 +49,8 @@ export const RecipeRepository = {
 	async deleteById(id: string): Promise<void> {
 		await Recipe.findByIdAndDelete(id);
 	},
+
+	async incLikesCount(recipeId: string, delta = 1): Promise<void> {
+		await Recipe.findByIdAndUpdate(recipeId, { $inc: { likesCount: delta } });
+	},
 };

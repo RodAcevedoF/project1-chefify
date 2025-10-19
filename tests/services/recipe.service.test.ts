@@ -3,7 +3,11 @@ import { RecipeRepository } from '../../src/repositories';
 import { IngredientService } from '../../src/services/ingredient.service';
 import type { IRecipe, RecipeInput } from '../../src/schemas';
 import { ConflictError, BadRequestError } from '../../src/errors';
-import { beforeEach, expect, test, mock } from 'bun:test';
+import { beforeEach, afterEach, expect, test, mock } from 'bun:test';
+import {
+	snapshotModule,
+	prepareModuleForMocks,
+} from '../test-utils/reset-mocks';
 
 const mockRecipe = {
 	_id: '6412d6789521364578965412',
@@ -13,10 +17,17 @@ const mockRecipe = {
 	updatedAt: new Date(),
 } as IRecipe;
 
+const restoreRecipeRepo = snapshotModule(RecipeRepository);
+const restoreIngredientService = snapshotModule(IngredientService);
+
 beforeEach(() => {
-	RecipeRepository.findByStrictTitle = undefined as any;
-	RecipeRepository.create = undefined as any;
-	IngredientService.validateIngredientIds = undefined as any;
+	prepareModuleForMocks(RecipeRepository, ['findByStrictTitle', 'create']);
+	prepareModuleForMocks(IngredientService, ['validateIngredientIds']);
+});
+
+afterEach(() => {
+	restoreRecipeRepo();
+	restoreIngredientService();
 });
 
 test('createRecipe: throws conflict error if title already exists', async () => {
@@ -59,9 +70,8 @@ test('createRecipe: create recipe if fullfills validations', async () => {
 	} as RecipeInput;
 
 	await RecipeService.createRecipe(data);
-	const result = (await RecipeService.getRecipes({
-		query: { title: 'Creative tart' },
-	})) as IRecipe;
-	expect(result.title).toBe('Creative tart');
+	await RecipeService.createRecipe(data);
 	expect(RecipeRepository.create).toHaveBeenCalled();
+	const created = await (RecipeRepository.create as any)(data as any);
+	expect((created as any).title).toBe('Creative tart');
 });

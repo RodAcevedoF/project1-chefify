@@ -13,6 +13,8 @@ const iaUsageSchema = new Schema(
 export const userSchema = new Schema(
 	{
 		name: { type: String, required: true, trim: true },
+		followersCount: { type: Number, default: 0 },
+		followingCount: { type: Number, default: 0 },
 		email: { type: String, required: true, unique: true },
 		password: { type: String, required: true },
 		foodPreference: { type: String, required: false },
@@ -44,6 +46,8 @@ export const userSchema = new Schema(
 export const UserInputSchema = z
 	.object({
 		name: z.string().min(1, 'Title is required'),
+		followersCount: z.number().int().nonnegative().optional(),
+		followingCount: z.number().int().nonnegative().optional(),
 		email: z.email('Invalid email data'),
 		password: z.string().min(8, 'At least 8 characters'),
 		foodPreference: z.string().optional(),

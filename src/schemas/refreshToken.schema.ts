@@ -27,6 +27,5 @@ export type IRefreshToken = RefreshTokenInput & {
 	updatedAt: Date;
 };
 
-RefreshTokenSchema.index({ token: 1 });
 RefreshTokenSchema.index({ userId: 1 });
 RefreshTokenSchema.index({ createdAt: -1 });

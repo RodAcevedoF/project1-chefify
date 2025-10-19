@@ -11,6 +11,7 @@ const mockUser = {
 	email: 'test@demo.com',
 	password: 'hashed-password',
 	role: 'user' as const,
+	isVerified: true,
 	createdAt: new Date(),
 	updatedAt: new Date(),
 };

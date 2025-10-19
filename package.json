@@ -4,6 +4,7 @@
 	"type": "module",
 	"private": true,
 	"scripts": {
+		"test": "bun test",
 		"start": "bun index.ts",
 		"dev": "bun --watch index.ts",
 		"lint": "eslint .",

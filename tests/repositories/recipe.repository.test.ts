@@ -34,7 +34,6 @@ describe('RecipeRepository CRUD operations', () => {
 	});
 
 	it('should retrieve all recipes', async () => {
-		// create two recipes and verify they can be retrieved via existing repo queries
 		await RecipeRepository.create(dummy);
 		await RecipeRepository.create(dummyBeta);
 		const r1 = await RecipeRepository.findByStrictTitle(dummy.title);
@@ -44,6 +43,7 @@ describe('RecipeRepository CRUD operations', () => {
 	});
 
 	it('should retrieve a specific recipe through a strict name', async () => {
+		await RecipeRepository.create(dummy);
 		const recipe = await RecipeRepository.findByStrictTitle(dummy.title);
 		expect(recipe?.title).toBe(dummy.title);
 	});
