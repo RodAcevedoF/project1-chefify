@@ -2,7 +2,7 @@ import { Schema } from 'mongoose';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 
-const iaUsageSchema = new Schema(
+const aiUsageSchema = new Schema(
 	{
 		count: { type: Number, default: 0 },
 		lastReset: { type: Date, default: Date.now },
@@ -27,8 +27,8 @@ export const userSchema = new Schema(
 			enum: ['user', 'admin'],
 			default: 'user',
 		},
-		iaUsage: {
-			type: iaUsageSchema,
+		aiUsage: {
+			type: aiUsageSchema,
 			required: false,
 			default: undefined,
 		},
@@ -56,7 +56,7 @@ export const UserInputSchema = z
 		imgPublicId: z.string().optional(),
 		role: z.enum(['user', 'admin']).default('user'),
 		shortBio: z.string().max(160).optional(),
-		iaUsage: z
+		aiUsage: z
 			.object({
 				count: z.number(),
 				lastReset: z.preprocess(

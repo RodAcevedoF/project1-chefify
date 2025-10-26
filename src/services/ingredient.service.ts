@@ -41,6 +41,11 @@ export const IngredientService = {
 		return found;
 	},
 
+	// Safe lookup that returns null when not found (no exception).
+	async findByStrictName(name: string): Promise<IIngredient | null> {
+		return await IngredientRepository.findByStrictName(name);
+	},
+
 	async getIngredients(
 		params: SearchParams,
 	): Promise<IIngredient | IIngredient[]> {

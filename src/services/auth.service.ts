@@ -173,9 +173,11 @@ export const AuthService = {
 		await UserRepository.updateById(user._id, data);
 	},
 
-	async status(userId: string): Promise<Pick<IUser, 'isVerified'>> {
+	async status(
+		userId: string,
+	): Promise<Pick<IUser, 'isVerified'> & { id: string }> {
 		const user = await UserRepository.findById(userId);
 		if (!user) throw new NotFoundError('User not found');
-		return { isVerified: user.isVerified };
+		return { isVerified: user.isVerified, id: user._id };
 	},
 };

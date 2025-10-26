@@ -13,8 +13,8 @@ router.use(authenticate());
 router.post('/', validateBody(RecipeInputSchema), RecipeController.create);
 
 router.get('/', RecipeController.get);
-router.get('/:id', RecipeController.get);
 router.get('/suggested', limitAIUsage, RecipeController.getSuggestedRecipe);
+router.get('/:id', RecipeController.get);
 
 router.patch('/:id', recipeGuard, RecipeController.update);
 

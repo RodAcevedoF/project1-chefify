@@ -1,4 +1,4 @@
-import { suggestRecipePrompt } from '../data';
+import { suggestRecipePrompt, RecipeCategories } from '../data';
 import type { ingredientPromptType, SearchParams } from '../types';
 import { BadRequestError, ConflictError, NotFoundError } from '../errors';
 import { Recipe } from '../models';
@@ -60,7 +60,7 @@ export const RecipeService = {
 	},
 
 	async deleteRecipe(id: string): Promise<void> {
-		const recipe = RecipeRepository.findById(id);
+		const recipe = await RecipeRepository.findById(id);
 		if (!recipe) throw new NotFoundError('Recipe not found for deletion');
 		await MediaService.deleteEntityImage(id, 'recipe');
 		await RecipeRepository.deleteById(id);
@@ -94,15 +94,13 @@ export const RecipeService = {
 					if (!name || typeof quantity !== 'number') {
 						throw new BadRequestError('Invalid ingredient format from AI');
 					}
-					let existing =
-						await IngredientService.getIngredienteByStricName(name);
-					existing ??
-						(await IngredientService.createIngredient({
-							name: name,
-							unit: unit,
-						}));
-					const ingredient =
-						await IngredientService.getIngredienteByStricName(name);
+					// Try safe lookup first (doesn't throw). If missing, create it
+					let existing = await IngredientService.findByStrictName(name);
+					if (!existing) {
+						await IngredientService.createIngredient({ name, unit });
+						existing = await IngredientService.getIngredienteByStricName(name);
+					}
+					const ingredient = existing;
 					if (!ingredient)
 						throw new BadRequestError(
 							'Failed to create or retrieve ingredient',
@@ -120,7 +118,29 @@ export const RecipeService = {
 			title: raw.title,
 			instructions: raw.instructions,
 			ingredients: ingredientResults,
-			categories: raw.categories ?? [],
+			categories: ((): (typeof RecipeCategories)[number][] => {
+				const allowed = RecipeCategories as readonly string[];
+				if (!Array.isArray(raw.categories))
+					return ['dinner'] as unknown as (typeof RecipeCategories)[number][];
+				const seen = new Set<string>();
+				const normalized: string[] = [];
+				for (const c of raw.categories) {
+					if (typeof c !== 'string') continue;
+					let s = c.trim().toLowerCase();
+					s = s.replace(/\s+/g, '-');
+					if (s.endsWith('s') && !allowed.includes(s)) s = s.slice(0, -1);
+					if (s === 'meat-based' || s === 'meat') s = 'carnivore';
+					if (allowed.includes(s) && !seen.has(s)) {
+						seen.add(s);
+						normalized.push(s);
+						if (normalized.length >= 4) break;
+					}
+				}
+				if (normalized.length === 0) {
+					return ['dinner'] as unknown as (typeof RecipeCategories)[number][];
+				}
+				return normalized as unknown as (typeof RecipeCategories)[number][];
+			})(),
 			imgUrl: raw.imgUrl,
 			imgPublicId: raw.imgPublicId,
 			servings: raw.servings ?? 1,
