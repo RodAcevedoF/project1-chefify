@@ -31,18 +31,4 @@ export const LikeController = {
 		const data = await LikeService.hasLiked(userId, recipeId);
 		return successResponse(res, data);
 	},
-
-	async getLikesForRecipe(req: Request, res: Response) {
-		const { recipeId } = req.params;
-		if (!recipeId) throw new BadRequestError('recipeId required');
-		const query = req.query as unknown as { skip?: string; limit?: string };
-		const skip = query.skip ?? '0';
-		const limit = query.limit ?? '20';
-		const data = await LikeService.getLikesForRecipe(
-			recipeId,
-			Number(skip),
-			Number(limit),
-		);
-		return successResponse(res, data);
-	},
 };

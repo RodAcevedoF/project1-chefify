@@ -50,8 +50,4 @@ export const LikeService = {
 	async countLikes(recipeId: string): Promise<number> {
 		return await LikeRepository.countForRecipe(recipeId);
 	},
-
-	async getLikesForRecipe(recipeId: string, skip = 0, limit = 20) {
-		return await LikeRepository.getLikesForRecipe(recipeId, skip, limit);
-	},
 };
