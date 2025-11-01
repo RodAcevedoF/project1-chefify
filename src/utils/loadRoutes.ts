@@ -5,7 +5,6 @@ import {
 	authRoutes,
 	recipeRoutes,
 	adminRoutes,
-	mediaRoutes,
 	followRoutes,
 	likeRoutes,
 } from '../routes';
@@ -18,7 +17,6 @@ export const loadRoutes = (app: Express) => {
 	app.use(`${base}/ingredient`, ingredientRoutes);
 	app.use(`${base}/auth`, authRoutes);
 	app.use(`${base}/admin`, adminRoutes);
-	app.use(`${base}/media`, mediaRoutes);
 	app.use(`${base}/follow`, followRoutes);
 	app.use(`${base}/like`, likeRoutes);
 };
