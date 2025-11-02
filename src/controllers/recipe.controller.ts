@@ -1,40 +1,44 @@
 import type { Request, Response } from 'express';
+import type { ExtendedRequest } from '../types';
 import { RecipeService } from '../services';
 import { successResponse } from '../utils';
-import { RecipeInputSchema, type RecipeInput } from '../schemas';
+import { RecipeInputSchema, type RecipeInput, type IRecipe } from '../schemas';
 import { BadRequestError, NotFoundError } from '../errors';
-
-type RecipeBody = Omit<RecipeInput, 'userId'>;
+import { extractPayload, extractFileBuffer } from '../utils/requestBody';
 
 export const RecipeController = {
-	async create(req: Request, res: Response) {
+	async create(req: ExtendedRequest, res: Response) {
 		if (!req.user?.id) {
 			throw new BadRequestError('User ID missing in request');
 		}
-
-		const body: RecipeBody = RecipeInputSchema.parse(req.body);
+		const body = RecipeInputSchema.parse(extractPayload(req.body));
 
 		const newRecipe: RecipeInput = {
 			...body,
 			userId: req.user.id,
 		};
 
-		await RecipeService.createRecipe(newRecipe);
+		const fileBuffer = extractFileBuffer(req);
+
+		await RecipeService.createRecipe(newRecipe, req.user.id, fileBuffer);
 		return successResponse(res, 'Recipe successfully created', 201);
 	},
 
-	async update(req: Request, res: Response) {
+	async update(req: ExtendedRequest, res: Response) {
 		const { id } = req.params;
 		if (!id) throw new BadRequestError('Invalid ID');
-		const updateData = req.body;
-		await RecipeService.updateRecipe(id, updateData);
+		const updateData = extractPayload(req.body) as Partial<IRecipe>;
+		const userId = req.user!.id;
+		const fileBuffer = extractFileBuffer(req);
+		await RecipeService.updateRecipe(id, updateData, userId, fileBuffer);
 		return successResponse(res, 'Successfully updated', 204);
 	},
 
 	async delete(req: Request, res: Response) {
 		const { id } = req.params;
 		if (!id) throw new BadRequestError('Invalid ID');
-		await RecipeService.deleteRecipe(id);
+		const userId = req.user!.id;
+		await RecipeService.deleteRecipe(id, userId);
 		return successResponse(res, 'Recipe deleted', 204);
 	},
 
