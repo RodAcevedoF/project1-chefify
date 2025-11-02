@@ -23,6 +23,7 @@ const mockUser = {
 	updatedAt: new Date(),
 } as HydratedDocument<IUser>;
 
+// debug helper kept during development; no-op in most test environments
 logger.debug(mockUser);
 
 const restoreUserRepo = snapshotModule(UserRepository);
@@ -103,8 +104,9 @@ test('deleteUser: delete user and associated image', async () => {
 	MediaService.deleteEntityImage = mock(() => Promise.resolve());
 	UserRepository.deleteById = mock(() => Promise.resolve());
 
-	const deleted = await UserService.deleteUser('123');
-	expect(deleted).toBeNull;
+	await UserService.deleteUser('123');
+	expect(MediaService.deleteEntityImage).toHaveBeenCalledWith('123', 'user');
+	expect(UserRepository.deleteById).toHaveBeenCalledWith('123');
 });
 
 test('saveRecipe: save recipe if not previously created', async () => {

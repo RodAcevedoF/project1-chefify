@@ -1,16 +1,21 @@
-import { UserRepository, RefreshTokenRepository } from '../repositories';
-import { NotFoundError, UnauthorizedError, ForbiddenError } from '../errors';
+import { UserRepository } from '../repositories';
+import { NotFoundError, UnauthorizedError, BadRequestError } from '../errors';
+import type { HydratedDocument } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
-import type { TokenPayload, LoginResponse } from '../types';
-import { bcryptWrapper, jwtWrapper } from '../utils';
+import { bcryptWrapper } from '../utils';
 import type { IUser, UserInput } from '../schemas';
-import { BadRequestError } from '../errors';
 import { sendEmail } from './email.service';
+import { redisClient } from '../config/redis.config';
+import logger from '../utils/logger';
+import { emailRoute } from '@/utils/emailRoutes';
 
-const JWT_SECRET = process.env.JWT_SECRET!;
-const JWT_EXPIRES_IN = '1h';
-const REFRESH_EXPIRES_IN_DAYS = 7;
-const BASE = process.env.BASE_ROUTE || '/chefify/api/v1';
+type RedisCompat = {
+	sAdd?: (key: string, member: string) => Promise<number>;
+	sRem?: (key: string, member: string) => Promise<number>;
+	sMembers?: (key: string) => Promise<string[]>;
+	del?: (...keys: string[]) => Promise<number>;
+};
+const redis = redisClient as unknown as RedisCompat;
 
 export const AuthService = {
 	async register(data: UserInput): Promise<void> {
@@ -25,7 +30,7 @@ export const AuthService = {
 
 		const user = await UserRepository.findByEmail(data.email);
 		if (!user) throw new BadRequestError('user not found');
-		const verifyLink = `http://localhost:3000${BASE}/auth/verify-email?token=${verificationToken}`;
+		const verifyLink = emailRoute(verificationToken, { option: 'verify' });
 
 		await sendEmail({
 			to: user.email,
@@ -53,7 +58,7 @@ export const AuthService = {
 				emailVerificationToken: newToken,
 				emailVerificationExpires: new Date(Date.now() + 1000 * 60 * 60 * 4),
 			});
-			const verifyLink = `http://localhost:3000${BASE}/auth/verify-email?token=${newToken}`;
+			const verifyLink = emailRoute(newToken, { option: 'verify' });
 			await sendEmail({
 				to: expiredUser.email,
 				type: 'VERIFICATION',
@@ -68,7 +73,10 @@ export const AuthService = {
 		throw new NotFoundError('User not found');
 	},
 
-	async login(email: string, password: string): Promise<LoginResponse> {
+	async login(
+		email: string,
+		password: string,
+	): Promise<{ id: string; email: string; role: string }> {
 		const user = await UserRepository.findByEmail(email);
 		if (!user) throw new NotFoundError('Email provided not found');
 		if (!user.isVerified) {
@@ -77,69 +85,8 @@ export const AuthService = {
 		const isValid = await bcryptWrapper.compare(password, user.password);
 		if (!isValid) throw new UnauthorizedError('Invalid credentials');
 
-		const payload: TokenPayload = {
-			id: user._id,
-			email: user.email,
-			role: user.role,
-		};
-
-		const accessToken = jwtWrapper.sign(payload, JWT_SECRET, {
-			expiresIn: JWT_EXPIRES_IN,
-		});
-
-		const refreshToken = uuidv4();
-		const expiresAt = new Date(
-			Date.now() + REFRESH_EXPIRES_IN_DAYS * 24 * 60 * 60 * 1000,
-		);
-
-		await RefreshTokenRepository.create({
-			userId: user._id.toString(),
-			token: refreshToken,
-			expiresAt,
-		});
-
-		return { accessToken, refreshToken };
-	},
-
-	async refresh(oldToken: string): Promise<LoginResponse> {
-		const stored = await RefreshTokenRepository.findByToken(oldToken);
-		if (!stored)
-			throw new UnauthorizedError('Refresh token not found or revoked');
-
-		if (stored.expiresAt < new Date()) {
-			await RefreshTokenRepository.deleteByToken(oldToken);
-			throw new ForbiddenError('Refresh token expired');
-		}
-
-		const user = await UserRepository.findById(stored.userId);
-		if (!user) throw new NotFoundError('User not found');
-		await RefreshTokenRepository.deleteByToken(oldToken);
-		const payload: TokenPayload = {
-			id: user._id,
-			email: user.email,
-			role: user.role,
-		};
-		const accessToken = jwtWrapper.sign(payload, JWT_SECRET, {
-			expiresIn: JWT_EXPIRES_IN,
-		});
-		const newRefreshToken = uuidv4();
-		const expiresAt = new Date(
-			Date.now() + REFRESH_EXPIRES_IN_DAYS * 24 * 60 * 60 * 1000,
-		);
-		await RefreshTokenRepository.create({
-			userId: user._id.toString(),
-			token: newRefreshToken,
-			expiresAt,
-		});
-		return { accessToken, refreshToken: newRefreshToken };
-	},
-
-	async logout(refreshToken: string): Promise<void> {
-		await RefreshTokenRepository.deleteByToken(refreshToken);
-	},
-
-	async logoutAll(userId: string): Promise<void> {
-		await RefreshTokenRepository.deleteByUserId(userId);
+		const result = { id: String(user._id), email: user.email, role: user.role };
+		return result;
 	},
 
 	async forgotPassword(email: string): Promise<void> {
@@ -153,7 +100,7 @@ export const AuthService = {
 		};
 		await UserRepository.updateById(user._id, data);
 
-		const resetLink = `http://localhost:3000${BASE}/auth/reset-password?token=${token}`;
+		const resetLink = emailRoute(token, { option: 'reset' });
 
 		await sendEmail({
 			to: user.email,
@@ -165,19 +112,134 @@ export const AuthService = {
 	async resetPassword(token: string, newPassword: string): Promise<void> {
 		const user = await UserRepository.findByResetToken(token);
 		if (!user) throw new BadRequestError('Invalid or expired token');
-		const data = {
-			resetPasswordToken: null,
-			resetPasswordExpires: null,
-			password: newPassword,
-		};
-		await UserRepository.updateById(user._id, data);
+
+		//export doc from schema
+		const userDoc = user as HydratedDocument<IUser>;
+		userDoc.password = newPassword;
+		userDoc.resetPasswordToken = undefined;
+		userDoc.resetPasswordExpires = undefined;
+		await userDoc.save();
+
+		try {
+			await UserRepository.addOperation(user._id, {
+				type: 'password_reset',
+				resource: 'user',
+				resourceId: user._id,
+				summary: 'Password reset via email token',
+			});
+		} catch (err) {
+			logger.warn('Could not record password reset operation', err);
+		}
+
+		//FIXME
+		try {
+			const target = user._id;
+			const members = (await redis.sMembers?.(`user:sessions:${target}`)) ?? [];
+			if (Array.isArray(members) && members.length > 0) {
+				const keys = members.map((sid) => `sess:${sid}`);
+				if (keys.length > 0 && redis.del) await redis.del(...keys);
+				if (redis.del) await redis.del(`user:sessions:${target}`);
+			}
+		} catch (err) {
+			logger.warn(
+				'Could not remove sessions for user after password reset',
+				err,
+			);
+		}
+	},
+
+	async validateResetToken(token: string): Promise<boolean> {
+		const user = await UserRepository.findByResetToken(token);
+		return Boolean(user);
 	},
 
 	async status(
 		userId: string,
-	): Promise<Pick<IUser, 'isVerified'> & { id: string }> {
+	): Promise<Pick<IUser, 'isVerified' | 'role' | 'aiUsage'> & { id: string }> {
 		const user = await UserRepository.findById(userId);
 		if (!user) throw new NotFoundError('User not found');
-		return { isVerified: user.isVerified, id: user._id };
+		return {
+			isVerified: user.isVerified,
+			id: user._id,
+			role: user.role,
+			aiUsage: user.aiUsage,
+		};
+	},
+
+	async changePassword(
+		userId: string,
+		currentPassword: string | null,
+		newPassword: string,
+		options?: {
+			asAdmin?: boolean;
+			targetUserId?: string;
+			excludeSessionId?: string;
+		},
+	): Promise<void> {
+		const targetId =
+			options?.asAdmin && options?.targetUserId ? options.targetUserId : userId;
+
+		const user = await UserRepository.findById(targetId);
+		if (!user) throw new NotFoundError('User not found');
+
+		if (!options?.asAdmin) {
+			if (!currentPassword)
+				throw new BadRequestError('Current password is required');
+			const isValid = await bcryptWrapper.compare(
+				currentPassword,
+				user.password,
+			);
+			if (!isValid)
+				throw new UnauthorizedError('Current password is incorrect');
+		}
+
+		const userDoc = user as HydratedDocument<IUser>;
+		userDoc.password = newPassword;
+		await userDoc.save();
+
+		try {
+			await UserRepository.addOperation(user._id, {
+				type: 'password_change',
+				resource: 'user',
+				resourceId: user._id,
+				summary:
+					options?.asAdmin ?
+						'Password changed by admin'
+					:	'Password changed by user',
+			});
+		} catch (err) {
+			logger.warn('Could not record password change operation', err);
+		}
+
+		try {
+			const target =
+				options?.asAdmin && options?.targetUserId ?
+					options!.targetUserId!
+				:	user._id;
+			const members = (await redis.sMembers?.(`user:sessions:${target}`)) ?? [];
+			if (Array.isArray(members) && members.length > 0) {
+				const exclude = options?.excludeSessionId;
+				const membersToRemove =
+					exclude ? members.filter((m) => m !== exclude) : members;
+				const keys = membersToRemove.map((sid) => `sess:${sid}`);
+				if (keys.length > 0 && redis.del) await redis.del(...keys);
+
+				if (membersToRemove.length === members.length) {
+					if (redis.del) await redis.del(`user:sessions:${target}`);
+				} else if (membersToRemove.length > 0 && redis.sRem) {
+					await Promise.all(
+						membersToRemove.map(
+							(m) =>
+								redis.sRem?.(`user:sessions:${target}`, m) as Promise<number>,
+						),
+					);
+				}
+			}
+		} catch (err) {
+			logger.warn(
+				'Could not remove sessions for user after password change',
+				err,
+			);
+		}
 	},
 };

@@ -1,6 +1,7 @@
 import { LikeService } from '../../src/services/like.service';
 import { LikeRepository } from '../../src/repositories/like.repository';
 import { UserService } from '../../src/services/user.service';
+import { UserRepository } from '../../src/repositories/user.repository';
 import { RecipeRepository } from '../../src/repositories/recipe.repository';
 import { beforeEach, afterEach, expect, test, mock } from 'bun:test';
 import {
@@ -10,6 +11,7 @@ import {
 
 const restoreLikeRepo = snapshotModule(LikeRepository);
 const restoreUserService = snapshotModule(UserService);
+const restoreUserRepo = snapshotModule(UserRepository);
 const restoreRecipeRepo = snapshotModule(RecipeRepository);
 
 beforeEach(() => {
@@ -21,12 +23,17 @@ beforeEach(() => {
 		'getLikesForRecipe',
 	]);
 	prepareModuleForMocks(UserService, ['getUserById']);
+	prepareModuleForMocks(UserRepository, [
+		'addSavedRecipe',
+		'removeSavedRecipe',
+	]);
 	prepareModuleForMocks(RecipeRepository, ['findById', 'incLikesCount']);
 });
 
 afterEach(() => {
 	restoreLikeRepo();
 	restoreUserService();
+	restoreUserRepo();
 	restoreRecipeRepo();
 });
 
@@ -38,6 +45,7 @@ test('like: success increments likesCount', async () => {
 		Promise.resolve({ id } as any),
 	);
 	LikeRepository.create = mock(() => Promise.resolve());
+	UserRepository.addSavedRecipe = mock(() => Promise.resolve());
 	RecipeRepository.incLikesCount = mock(() => Promise.resolve());
 
 	await LikeService.like('u1', 'r1');
@@ -67,6 +75,7 @@ test('like: user not found', async () => {
 
 test('unlike: delete decrements likesCount when deleted', async () => {
 	LikeRepository.delete = mock(() => Promise.resolve({ _id: 'del' } as any));
+	UserRepository.removeSavedRecipe = mock(() => Promise.resolve());
 	RecipeRepository.incLikesCount = mock(() => Promise.resolve());
 
 	await LikeService.unlike('u1', 'r1');
