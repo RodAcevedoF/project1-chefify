@@ -1,31 +1,34 @@
-import type { Request, Response, NextFunction } from "express";
-import { isAppError } from "../utils";
+import type { Request, Response, NextFunction } from 'express';
+import { isAppError } from '../utils';
+import logger from '../utils/logger';
 
 export const errorHandler = (
-  err: unknown,
-  req: Request,
-  res: Response,
-  next: NextFunction
+	err: unknown,
+	req: Request,
+	res: Response,
+	_next: NextFunction,
 ) => {
-  const isKnownError = err instanceof Error;
-  const statusCode =
-    isKnownError && isAppError(err) ? (err.statusCode ?? 500) : 500;
-  const message = isKnownError ? err.message : "Internal Server Error";
-  const stack = isKnownError ? err.stack : undefined;
+	const isKnownError = err instanceof Error;
+	const statusCode =
+		isKnownError && isAppError(err) ? (err.statusCode ?? 500) : 500;
+	const message = isKnownError ? err.message : 'Internal Server Error';
+	const stack = isKnownError ? err.stack : undefined;
 
-  const response: Record<string, unknown> = {
-    success: false,
-    error: message,
-    ...(process.env.NODE_ENV === "development" && { stack })
-  };
+	const response: Record<string, unknown> = {
+		success: false,
+		error: message,
+		...(process.env.NODE_ENV === 'development' && { stack }),
+	};
 
-  if (isKnownError && isAppError(err)) {
-    response.statusCode = statusCode;
-  }
+	if (isKnownError && isAppError(err)) {
+		response.statusCode = statusCode;
+	}
 
-  if (process.env.NODE_ENV === "development") {
-    console.error("ERROR →", err);
-  }
+	void _next;
 
-  res.status(statusCode).json(response);
+	if (process.env.NODE_ENV === 'development') {
+		logger.error('ERROR →', err);
+	}
+
+	res.status(statusCode).json(response);
 };
