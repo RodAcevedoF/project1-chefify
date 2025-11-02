@@ -10,6 +10,7 @@ import {
 } from '../test-utils/reset-mocks';
 import type { HydratedDocument } from 'mongoose';
 import { createMockUserDoc } from '../mocks/createMockUser';
+import logger from '@/utils/logger';
 
 const mockUser = {
 	_id: '64b123456789654123032145',
@@ -22,7 +23,7 @@ const mockUser = {
 	updatedAt: new Date(),
 } as HydratedDocument<IUser>;
 
-console.log(mockUser);
+logger.debug(mockUser);
 
 const restoreUserRepo = snapshotModule(UserRepository);
 const restoreMediaService = snapshotModule(MediaService);
@@ -58,8 +59,6 @@ test('createUser: create user if email does not previously exist', async () => {
 		name: 'Test',
 	};
 
-	// When createUser is invoked, update the findByEmail mock so subsequent
-	// calls return the created user (service calls findByEmail after create).
 	UserRepository.createUser = mock((data) => {
 		const created = { ...mockUser, ...data } as any;
 		UserRepository.findByEmail = mock(() => Promise.resolve(created));
