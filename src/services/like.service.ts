@@ -4,7 +4,9 @@ import { UserService } from './user.service';
 import { UserRepository } from '../repositories/user.repository';
 import { RecipeRepository } from '../repositories/recipe.repository';
 import { NotFoundError } from '../errors';
+import logger from '../utils/logger';
 import { RecipeRepository as RR } from '../repositories/recipe.repository';
+import type { Operation } from '../schemas';
 
 export const LikeService = {
 	async like(userId: string, recipeId: string): Promise<void> {
@@ -18,6 +20,20 @@ export const LikeService = {
 			await LikeRepository.create(payload);
 			await RR.incLikesCount(recipeId, 1);
 			await UserRepository.addSavedRecipe(userId, recipeId);
+
+			try {
+				const op: Operation = {
+					type: 'like',
+					resource: 'recipe',
+					resourceId: recipeId,
+					summary: `Liked recipe ${recipe.title}`,
+					meta: {},
+					createdAt: new Date(),
+				};
+				await UserService.recordOperation(userId, op);
+			} catch (err) {
+				logger.warn('Failed to record like operation', err);
+			}
 		} catch (err: unknown) {
 			const e = err as { code?: number; codeName?: string } | undefined;
 			if (e && (e.code === 11000 || e.codeName === 'DuplicateKey')) return;
@@ -28,7 +44,7 @@ export const LikeService = {
 	async unlike(userId: string, recipeId: string): Promise<void> {
 		const deleted = await LikeRepository.delete(userId, recipeId);
 		if (process.env.NODE_ENV === 'development') {
-			console.debug(
+			logger.debug(
 				'[LikeService.unlike] deleted:',
 				deleted,
 				'userId:',
@@ -40,6 +56,20 @@ export const LikeService = {
 		if (deleted) {
 			await RR.incLikesCount(recipeId, -1);
 			await UserRepository.removeSavedRecipe(userId, recipeId);
+
+			try {
+				const op: Operation = {
+					type: 'unlike',
+					resource: 'recipe',
+					resourceId: recipeId,
+					summary: `Removed like from recipe ${recipeId}`,
+					meta: {},
+					createdAt: new Date(),
+				};
+				await UserService.recordOperation(userId, op);
+			} catch (err) {
+				logger.warn('Failed to record unlike operation', err);
+			}
 		}
 	},
 

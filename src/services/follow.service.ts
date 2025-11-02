@@ -3,6 +3,8 @@ import { BadRequestError, NotFoundError } from '../errors';
 import type { FollowInput } from '../schemas/follow.schema';
 import { UserService } from './user.service';
 import { UserRepository } from '../repositories/user.repository';
+import type { Operation } from '../schemas';
+import logger from '../utils/logger';
 
 export const FollowService = {
 	async follow(followerId: string, followingId: string): Promise<void> {
@@ -23,6 +25,20 @@ export const FollowService = {
 			await FollowRepository.create(payload);
 			await UserRepository.incFollowersCount(followingId, 1);
 			await UserRepository.incFollowingCount(followerId, 1);
+
+			try {
+				const op: Operation = {
+					type: 'follow',
+					resource: 'user',
+					resourceId: followingId,
+					summary: `Followed ${following.name}`,
+					meta: {},
+					createdAt: new Date(),
+				};
+				await UserService.recordOperation(followerId, op);
+			} catch (err) {
+				logger.warn('Failed to record follow operation', err);
+			}
 		} catch (err: unknown) {
 			const e = err as { code?: number; codeName?: string } | undefined;
 			if (e && (e.code === 11000 || e.codeName === 'DuplicateKey')) return;
@@ -35,6 +51,20 @@ export const FollowService = {
 		if (deleted) {
 			await UserRepository.incFollowersCount(followingId, -1);
 			await UserRepository.incFollowingCount(followerId, -1);
+
+			try {
+				const op: Operation = {
+					type: 'unfollow',
+					resource: 'user',
+					resourceId: followingId,
+					summary: `Unfollowed user ${followingId}`,
+					meta: {},
+					createdAt: new Date(),
+				};
+				await UserService.recordOperation(followerId, op);
+			} catch (err) {
+				logger.warn('Failed to record unfollow operation', err);
+			}
 		}
 	},
 	async countFollowers(userId: string): Promise<number> {

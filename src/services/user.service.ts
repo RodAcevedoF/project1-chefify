@@ -1,13 +1,28 @@
 import { UserRepository } from '../repositories';
-import type { UserInput, IUser, IRecipe } from '../schemas';
+import type { UserInput, IUser, IRecipe, Operation } from '../schemas';
 import { BadRequestError, NotFoundError } from '../errors';
 import { MediaService } from './media.service';
-import { sanitizeUser } from '../utils';
+import { sanitizeUser, mediaEntityConfig } from '../utils';
 
 export const UserService = {
-	async createUser(data: UserInput): Promise<void> {
+	async createUser(data: UserInput, fileBuffer?: Buffer): Promise<void> {
 		const existing = await UserRepository.findByEmail(data.email);
 		if (existing) throw new BadRequestError('Email already exists');
+
+		if (fileBuffer) {
+			try {
+				const folder = mediaEntityConfig.user.folder;
+				const uploadResult = await MediaService.upload(fileBuffer, folder);
+				data = {
+					...data,
+					imgUrl: uploadResult.url,
+					imgPublicId: uploadResult.publicId,
+				} as UserInput;
+			} catch (err) {
+				throw err;
+			}
+		}
+
 		await UserRepository.createUser(data);
 		const created = await UserRepository.findByEmail(data.email);
 		if (!created) throw new BadRequestError('Failed to create user');
@@ -32,10 +47,26 @@ export const UserService = {
 	async updateUser(
 		id: string,
 		data: Partial<Omit<UserInput, 'role'>>,
+		fileBuffer?: Buffer,
 	): Promise<Omit<IUser, 'password'>> {
 		if ('role' in data) delete (data as Partial<UserInput>).role;
 		const existing = await UserRepository.findById(id);
 		if (!existing) throw new NotFoundError('User not found');
+		if (fileBuffer) {
+			try {
+				await MediaService.replaceEntityImage({
+					entityId: id,
+					type: 'user',
+					buffer: fileBuffer,
+				});
+				if ('imgUrl' in data) delete (data as Partial<UserInput>).imgUrl;
+				if ('imgPublicId' in data)
+					delete (data as Partial<UserInput>).imgPublicId;
+			} catch (err) {
+				throw err;
+			}
+		}
+
 		await UserRepository.updateById(id, data);
 		const updated = await UserRepository.findById(id);
 		if (!updated) throw new NotFoundError('User not found after update');
@@ -83,5 +114,17 @@ export const UserService = {
 		const recipes = await UserRepository.getCreatedRecipes(userId);
 		if (!recipes) throw new NotFoundError('Recipes not found');
 		return recipes;
+	},
+
+	async recordOperation(userId: string, op: Operation): Promise<void> {
+		const user = await UserRepository.findById(userId);
+		if (!user) throw new NotFoundError('User not found');
+		await UserRepository.addOperation(userId, op);
+	},
+
+	async getRecentOperations(userId: string): Promise<Operation[]> {
+		const ops = await UserRepository.getRecentOperations(userId);
+		if (!ops) throw new NotFoundError('User not found');
+		return ops;
 	},
 };

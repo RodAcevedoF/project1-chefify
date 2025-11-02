@@ -3,13 +3,24 @@ import type { ingredientPromptType, SearchParams } from '../types';
 import { BadRequestError, ConflictError, NotFoundError } from '../errors';
 import { Recipe } from '../models';
 import { RecipeRepository } from '../repositories';
-import { RecipeInputSchema, type RecipeInput, type IRecipe } from '../schemas';
-import { getSuggestedRecipe } from '../utils';
+import {
+	RecipeInputSchema,
+	type RecipeInput,
+	type IRecipe,
+	type Operation,
+} from '../schemas';
+import { getSuggestedRecipe, mediaEntityConfig } from '../utils';
 import { IngredientService } from './ingredient.service';
 import { MediaService } from './media.service';
+import { UserService } from './user.service';
+import logger from '../utils/logger';
 
 export const RecipeService = {
-	async createRecipe(data: RecipeInput): Promise<void> {
+	async createRecipe(
+		data: RecipeInput,
+		userId?: string,
+		fileBuffer?: Buffer,
+	): Promise<void> {
 		const existing = await RecipeRepository.findByStrictTitle(data.title);
 		if (existing) {
 			throw new ConflictError(
@@ -24,7 +35,40 @@ export const RecipeService = {
 				`Missing ingredient IDs: ${missingIngredients.join(', ')}`,
 			);
 		}
+
+		if (fileBuffer) {
+			try {
+				const folder = mediaEntityConfig.recipe.folder;
+				const uploadResult = await MediaService.upload(fileBuffer, folder);
+				data = {
+					...data,
+					imgUrl: uploadResult.url,
+					imgPublicId: uploadResult.publicId,
+				} as RecipeInput;
+			} catch (err) {
+				throw err;
+			}
+		}
+
 		await RecipeRepository.create(data);
+
+		if (!userId) return;
+		try {
+			const created = await RecipeRepository.findByStrictTitle(data.title);
+			if (created) {
+				const op: Operation = {
+					type: 'create',
+					resource: 'recipe',
+					resourceId: (created as IRecipe)._id?.toString(),
+					summary: `Created recipe ${created.title}`,
+					meta: {},
+					createdAt: new Date(),
+				};
+				await UserService.recordOperation(userId, op);
+			}
+		} catch (err) {
+			logger.warn('Failed to record create operation for user', err);
+		}
 	},
 
 	async importRecipesFromCsv(
@@ -36,13 +80,18 @@ export const RecipeService = {
 			if (parsed.success) {
 				validRecipes.push(parsed.data);
 			} else {
-				console.warn('Invalid recipe skipped:', parsed.error);
+				logger.warn('Invalid recipe skipped:', parsed.error);
 			}
 		}
 		return await RecipeRepository.insertMany(validRecipes);
 	},
 
-	async updateRecipe(id: string, data: Partial<IRecipe>): Promise<void> {
+	async updateRecipe(
+		id: string,
+		data: Partial<IRecipe>,
+		userId?: string,
+		fileBuffer?: Buffer,
+	): Promise<void> {
 		if (data.title) {
 			const existing = await RecipeRepository.findByStrictTitleExcludingId(
 				data.title,
@@ -56,14 +105,61 @@ export const RecipeService = {
 		if (!recipe) {
 			throw new NotFoundError('Recipe not found');
 		}
+
+		if (fileBuffer) {
+			try {
+				await MediaService.replaceEntityImage({
+					entityId: id,
+					type: 'recipe',
+					buffer: fileBuffer,
+				});
+
+				if ('imgUrl' in data) delete (data as Partial<IRecipe>).imgUrl;
+				if ('imgPublicId' in data)
+					delete (data as Partial<IRecipe>).imgPublicId;
+			} catch (err) {
+				throw err;
+			}
+		}
+
 		await RecipeRepository.updateById(id, data);
+
+		if (!userId) return;
+		try {
+			const op: Operation = {
+				type: 'update',
+				resource: 'recipe',
+				resourceId: id,
+				summary: `Updated recipe ${id}`,
+				meta: { fields: Object.keys(data || {}) },
+				createdAt: new Date(),
+			};
+			await UserService.recordOperation(userId, op);
+		} catch (err) {
+			logger.warn('Failed to record update operation for user', err);
+		}
 	},
 
-	async deleteRecipe(id: string): Promise<void> {
+	async deleteRecipe(id: string, userId?: string): Promise<void> {
 		const recipe = await RecipeRepository.findById(id);
 		if (!recipe) throw new NotFoundError('Recipe not found for deletion');
 		await MediaService.deleteEntityImage(id, 'recipe');
 		await RecipeRepository.deleteById(id);
+
+		if (!userId) return;
+		try {
+			const op: Operation = {
+				type: 'delete',
+				resource: 'recipe',
+				resourceId: id,
+				summary: `Deleted recipe ${id}`,
+				meta: {},
+				createdAt: new Date(),
+			};
+			await UserService.recordOperation(userId, op);
+		} catch (err) {
+			logger.warn('Failed to record delete operation for user', err);
+		}
 	},
 
 	async getRecipes(params: SearchParams): Promise<IRecipe | IRecipe[]> {
@@ -94,7 +190,7 @@ export const RecipeService = {
 					if (!name || typeof quantity !== 'number') {
 						throw new BadRequestError('Invalid ingredient format from AI');
 					}
-					// Try safe lookup first (doesn't throw). If missing, create it
+
 					let existing = await IngredientService.findByStrictName(name);
 					if (!existing) {
 						await IngredientService.createIngredient({ name, unit });
@@ -150,7 +246,7 @@ export const RecipeService = {
 
 		const parsed = RecipeInputSchema.safeParse(recipeData);
 		if (!parsed.success) {
-			console.warn('Zod validation failed for AI recipe:', parsed.error);
+			logger.warn('Zod validation failed for AI recipe:', parsed.error);
 			throw new BadRequestError('Invalid recipe format after processing');
 		}
 		return parsed.data;

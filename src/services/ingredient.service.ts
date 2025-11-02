@@ -7,6 +7,7 @@ import {
 	type IIngredient,
 } from '../schemas';
 import type { SearchParams } from '../types';
+import logger from '../utils/logger';
 
 export const IngredientService = {
 	async importIngredientsFromCsv(
@@ -19,7 +20,7 @@ export const IngredientService = {
 			if (parsed.success) {
 				validIngredients.push(parsed.data);
 			} else {
-				console.warn('Invalid ingredient skipped:', parsed.error);
+				logger.warn('Invalid ingredient skipped:', parsed.error);
 			}
 		}
 		return await IngredientRepository.insertMany(validIngredients);
