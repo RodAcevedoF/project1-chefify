@@ -2,13 +2,10 @@ import type { Request, Response } from 'express';
 import { AuthService } from '../services';
 import { successResponse } from '../utils';
 import { BadRequestError, ValidationError } from '../errors';
-import {
-	COOKIE_OPTIONS,
-	COOKIE_NAME,
-	REFRESH_COOKIE_NAME,
-	REFRESH_COOKIE_OPTIONS,
-} from '../utils';
+import { COOKIE_OPTIONS, COOKIE_NAME } from '../utils';
 import type { UserInput } from '../schemas';
+import type { Session, SessionData } from 'express-session';
+// Note: Redis/session operations are handled in `AuthService`.
 
 export const AuthController = {
 	async register(req: Request, res: Response) {
@@ -34,59 +31,46 @@ export const AuthController = {
 			throw new BadRequestError('Email and password are required');
 		}
 
-		const { accessToken, refreshToken } = await AuthService.login(
-			email,
-			password,
-		);
+		const {
+			id: userId,
+			email: userEmail,
+			role,
+		} = await AuthService.login(email, password);
 
-		if (!COOKIE_NAME || !REFRESH_COOKIE_NAME)
-			throw new ValidationError(
-				'COOKIE_NAME environment variable is not defined',
-			);
+		if (!req.session) {
+			req.session = {} as unknown as Session &
+				SessionData & {
+					user?: { id: string; email: string; role: string };
+				};
+		}
 
-		res
-			.cookie(COOKIE_NAME, accessToken, COOKIE_OPTIONS)
-			.cookie(REFRESH_COOKIE_NAME, refreshToken, REFRESH_COOKIE_OPTIONS);
+		const sessionObj = req.session as unknown as Session &
+			SessionData & {
+				user?: { id: string; email: string; role: string };
+			};
+		sessionObj.user = { id: String(userId), email: userEmail, role };
+
+		const sid = req.sessionID ?? req.session?.id;
+		if (sid && userId) await AuthService.addSession(userId, sid);
 
 		return successResponse(res, { message: 'Login successful' });
 	},
 
 	async logout(req: Request, res: Response) {
-		const refreshToken = req.cookies?.refreshToken;
-		if (!COOKIE_NAME || !REFRESH_COOKIE_NAME) {
-			throw new ValidationError(
-				'COOKIE_NAME environment variable is not defined',
-			);
+		if (req.session) {
+			const sid = req.sessionID ?? req.session?.id;
+			req.session.destroy?.(() => {
+				if (sid && req.user?.id) {
+					AuthService.removeSession(req.user.id, sid).catch(() => null);
+				}
+			});
 		}
 
-		if (refreshToken) {
-			await AuthService.logout(refreshToken);
-		}
-
-		res
-			.clearCookie(COOKIE_NAME, COOKIE_OPTIONS)
-			.clearCookie(REFRESH_COOKIE_NAME, COOKIE_OPTIONS);
+		const sessionCookieName = process.env.SESSION_COOKIE_NAME || 'sid';
+		res.clearCookie(sessionCookieName);
+		if (COOKIE_NAME) res.clearCookie(COOKIE_NAME, COOKIE_OPTIONS);
 
 		return successResponse(res, { message: 'Logged out successfully' });
-	},
-
-	async refreshToken(req: Request, res: Response) {
-		const oldToken = req.cookies?.refreshToken;
-		if (!oldToken) {
-			throw new BadRequestError('Refresh token not provided');
-		}
-
-		const { accessToken, refreshToken } = await AuthService.refresh(oldToken);
-		if (!COOKIE_NAME || !REFRESH_COOKIE_NAME)
-			throw new ValidationError(
-				'COOKIE_NAME environment variable is not defined',
-			);
-
-		res
-			.cookie(COOKIE_NAME, accessToken, COOKIE_OPTIONS)
-			.cookie(REFRESH_COOKIE_NAME, refreshToken, REFRESH_COOKIE_OPTIONS);
-
-		return successResponse(res, { message: 'Access token refreshed' });
 	},
 
 	async logoutAll(req: Request, res: Response) {
@@ -95,16 +79,12 @@ export const AuthController = {
 			throw new ValidationError('User ID not found in request');
 		}
 
-		await AuthService.logoutAll(userId);
+		// Delegate session clearing to the service so controller remains thin.
+		await AuthService.clearAllSessions(userId);
 
-		if (!COOKIE_NAME || !REFRESH_COOKIE_NAME)
-			throw new ValidationError(
-				'COOKIE_NAME environment variable is not defined',
-			);
-
-		res
-			.clearCookie(COOKIE_NAME, COOKIE_OPTIONS)
-			.clearCookie(REFRESH_COOKIE_NAME, COOKIE_OPTIONS);
+		const sessionCookieName = process.env.SESSION_COOKIE_NAME || 'sid';
+		res.clearCookie(sessionCookieName);
+		if (COOKIE_NAME) res.clearCookie(COOKIE_NAME, COOKIE_OPTIONS);
 
 		return successResponse(res, { message: 'Logged out from all devices' });
 	},
@@ -118,6 +98,23 @@ export const AuthController = {
 		await AuthService.forgotPassword(email);
 		return successResponse(res, { message: 'Password reset link sent' });
 	},
+
+	async resetPasswordPage(req: Request, res: Response) {
+		const { token } = req.query;
+		if (!token) throw new BadRequestError('Invalid token');
+
+		const isValid = await AuthService.validateResetToken(token.toString());
+
+		const frontend = process.env.FRONTEND_URL || 'http://localhost:5173';
+		const resetPath = '/reset-password';
+
+		if (!isValid) {
+			return res.redirect(`${frontend}${resetPath}?invalid=true`);
+		}
+		return res.redirect(
+			`${frontend}${resetPath}?token=${encodeURIComponent(token.toString())}`,
+		);
+	},
 	async resetPassword(req: Request, res: Response) {
 		const { token, newPassword } = req.body;
 
@@ -127,6 +124,33 @@ export const AuthController = {
 
 		await AuthService.resetPassword(token, newPassword);
 
+		return successResponse(res, { message: 'Password updated successfully' });
+	},
+
+	async changePassword(req: Request, res: Response) {
+		const userId = req.user?.id;
+		if (!userId) throw new BadRequestError('User not authenticated');
+
+		const { currentPassword, newPassword, targetUserId } = req.body as {
+			currentPassword?: string;
+			newPassword?: string;
+			targetUserId?: string;
+		};
+
+		if (!newPassword) throw new BadRequestError('New password is required');
+
+		const asAdmin = req.user?.role === 'admin' && Boolean(targetUserId);
+
+		await AuthService.changePassword(
+			userId,
+			currentPassword ?? null,
+			newPassword,
+			{
+				asAdmin,
+				targetUserId,
+				excludeSessionId: req.sessionID ?? req.session?.id,
+			},
+		);
 		return successResponse(res, { message: 'Password updated successfully' });
 	},
 

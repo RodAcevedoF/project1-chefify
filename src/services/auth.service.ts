@@ -7,15 +7,10 @@ import type { IUser, UserInput } from '../schemas';
 import { sendEmail } from './email.service';
 import { redisClient } from '../config/redis.config';
 import logger from '../utils/logger';
+import { asRedis } from '../utils/redisCompat';
 import { emailRoute } from '@/utils/emailRoutes';
 
-type RedisCompat = {
-	sAdd?: (key: string, member: string) => Promise<number>;
-	sRem?: (key: string, member: string) => Promise<number>;
-	sMembers?: (key: string) => Promise<string[]>;
-	del?: (...keys: string[]) => Promise<number>;
-};
-const redis = redisClient as unknown as RedisCompat;
+const redis = asRedis(redisClient);
 
 export const AuthService = {
 	async register(data: UserInput): Promise<void> {
@@ -240,6 +235,38 @@ export const AuthService = {
 				'Could not remove sessions for user after password change',
 				err,
 			);
+		}
+	},
+
+	// Session management helpers — keep Redis/session logic centralized in the service
+	async addSession(userId: string, sid: string): Promise<void> {
+		try {
+			if (sid && userId && redis.sAdd)
+				await redis.sAdd(`user:sessions:${userId}`, sid);
+		} catch (err) {
+			logger.warn('Could not add session id to redis set', err);
+		}
+	},
+
+	async removeSession(userId: string, sid: string): Promise<void> {
+		try {
+			if (sid && userId && redis.sRem)
+				await redis.sRem(`user:sessions:${userId}`, sid);
+		} catch (err) {
+			logger.warn('Could not remove session id from redis set', err);
+		}
+	},
+
+	async clearAllSessions(userId: string): Promise<void> {
+		try {
+			const members = (await redis.sMembers?.(`user:sessions:${userId}`)) ?? [];
+			if (Array.isArray(members) && members.length > 0) {
+				const keys = members.map((sid) => `sess:${sid}`);
+				if (keys.length > 0 && redis.del) await redis.del(...keys);
+				if (redis.del) await redis.del(`user:sessions:${userId}`);
+			}
+		} catch (err) {
+			logger.warn('Could not remove sessions for user', err);
 		}
 	},
 };
