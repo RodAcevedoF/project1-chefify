@@ -20,8 +20,8 @@ export type TokenPayload = {
 };
 
 export type LoginResponse = {
-	accessToken: string;
-	refreshToken: string;
+	userId?: string;
+	message?: string;
 };
 
 export type EmailType = 'VERIFICATION' | 'RESET_PASSWORD';

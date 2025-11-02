@@ -8,18 +8,19 @@ const router = Router();
 router.post('/register', AuthController.register);
 router.post('/login', AuthController.login);
 router.post('/logout', authenticate(), AuthController.logout);
-router.post('/refresh', AuthController.refreshToken);
 router.post('/logout-all', authenticate(), AuthController.logoutAll);
-router.get('/verify-email', AuthController.verifyEmail);
-router.get('/forgot-password', AuthController.forgotPassword);
-router.get('/me', authenticate(), AuthController.status);
+// The route already uses POST, no changes needed.
+router.post('/forgot-password', AuthController.forgotPassword);
+router.get('/reset-password', AuthController.resetPasswordPage);
 router.post('/reset-password', AuthController.resetPassword);
-
+router.post('/change-password', authenticate(), AuthController.changePassword);
 router.post(
-  '/logout-all/:id',
-  authenticate(['admin']),
-  authGuard,
-  AuthController.logoutAll
+	'/logout-all/:id',
+	authenticate(['admin']),
+	authGuard,
+	AuthController.logoutAll,
 );
+router.get('/verify-email', AuthController.verifyEmail);
+router.get('/me', authenticate(), AuthController.status);
 
 export default router;
