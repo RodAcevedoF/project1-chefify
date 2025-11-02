@@ -10,6 +10,17 @@ const aiUsageSchema = new Schema(
 	{ _id: false },
 );
 
+const recentOpSchema = new Schema(
+	{
+		type: { type: String, required: true },
+		resource: { type: String, required: true },
+		resourceId: { type: Schema.Types.ObjectId, required: false },
+		summary: { type: String, required: false },
+		meta: { type: Schema.Types.Mixed, required: false },
+		createdAt: { type: Date, default: Date.now },
+	},
+	{ _id: false },
+);
 export const userSchema = new Schema(
 	{
 		name: { type: String, required: true, trim: true },
@@ -32,6 +43,11 @@ export const userSchema = new Schema(
 			required: false,
 			default: undefined,
 		},
+		recentOps: {
+			type: [recentOpSchema],
+			default: [],
+			required: false,
+		},
 		emailVerificationToken: { type: String, required: false },
 		emailVerificationExpires: { type: Date, required: false },
 		resetPasswordToken: { type: String, required: false, null: true },
@@ -45,6 +61,23 @@ export const userSchema = new Schema(
 
 export const UserInputSchema = z
 	.object({
+		recentOps: z
+			.array(
+				z.object({
+					type: z.string(),
+					resource: z.string(),
+					resourceId: z.string().optional(),
+					summary: z.string().optional(),
+					meta: z.any().optional(),
+					createdAt: z
+						.preprocess(
+							(val) => (typeof val === 'string' ? new Date(val) : val),
+							z.date(),
+						)
+						.optional(),
+				}),
+			)
+			.optional(),
 		name: z.string().min(1, 'Title is required'),
 		followersCount: z.number().int().nonnegative().optional(),
 		followingCount: z.number().int().nonnegative().optional(),
@@ -83,6 +116,15 @@ export type IUser = UserInput & {
 	_id: string;
 	createdAt: Date;
 	updatedAt: Date;
+};
+
+export type Operation = {
+	type: string;
+	resource: string;
+	resourceId?: string;
+	summary?: string;
+	meta?: unknown;
+	createdAt?: Date;
 };
 
 userSchema.pre('save', async function (next) {

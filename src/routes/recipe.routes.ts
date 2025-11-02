@@ -1,22 +1,20 @@
 import { Router } from 'express';
-import { RecipeInputSchema } from '../schemas';
 import { RecipeController } from '../controllers';
 import { recipeGuard } from '../middlewares/recipe.guard';
 import { authenticate } from '../middlewares/authenticate';
-import { validateBody } from '../middlewares/validateBody';
+import { uploadMedia } from '../middlewares/uploadMedia';
 import { limitAIUsage } from '../middlewares/AIUsage';
 
 const router = Router();
 
 router.use(authenticate());
 
-router.post('/', validateBody(RecipeInputSchema), RecipeController.create);
-
+router.post('/', uploadMedia(), RecipeController.create);
 router.get('/', RecipeController.get);
 router.get('/suggested', limitAIUsage, RecipeController.getSuggestedRecipe);
 router.get('/:id', RecipeController.get);
 
-router.patch('/:id', recipeGuard, RecipeController.update);
+router.patch('/:id', recipeGuard, uploadMedia(), RecipeController.update);
 
 router.delete('/:id', recipeGuard, RecipeController.delete);
 

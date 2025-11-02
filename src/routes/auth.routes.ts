@@ -11,7 +11,6 @@ router.post('/logout', authenticate(), AuthController.logout);
 router.post('/logout-all', authenticate(), AuthController.logoutAll);
 // The route already uses POST, no changes needed.
 router.post('/forgot-password', AuthController.forgotPassword);
-router.get('/reset-password', AuthController.resetPasswordPage);
 router.post('/reset-password', AuthController.resetPassword);
 router.post('/change-password', authenticate(), AuthController.changePassword);
 router.post(
