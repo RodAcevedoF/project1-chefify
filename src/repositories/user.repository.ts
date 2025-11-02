@@ -1,6 +1,6 @@
 import type { HydratedDocument } from 'mongoose';
 import { Recipe, User } from '../models';
-import type { IRecipe, IUser, UserInput } from '../schemas';
+import type { IRecipe, IUser, UserInput, Operation } from '../schemas';
 
 export const UserRepository = {
 	async createUser(data: UserInput): Promise<void> {
@@ -67,6 +67,23 @@ export const UserRepository = {
 
 	async incFollowingCount(userId: string, delta = 1): Promise<void> {
 		await User.findByIdAndUpdate(userId, { $inc: { followingCount: delta } });
+	},
+
+	async addOperation(userId: string, op: Operation): Promise<void> {
+		await User.findByIdAndUpdate(
+			userId,
+			{
+				$push: {
+					recentOps: { $each: [op], $position: 0, $slice: 5 },
+				},
+			},
+			{ new: true, runValidators: true },
+		);
+	},
+
+	async getRecentOperations(userId: string): Promise<Operation[] | null> {
+		const user = await User.findById(userId).select('recentOps');
+		return user ? (user.recentOps as Operation[]) : null;
 	},
 	async findByEmailToken(
 		emailVerificationToken: string,

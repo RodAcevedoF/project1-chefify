@@ -1,13 +1,17 @@
 import type { Request, Response } from 'express';
+import type { ExtendedRequest } from '../types';
 import { UserService } from '../services';
 import { successResponse } from '../utils';
 import { BadRequestError } from '../errors'; // Asumiendo que tienes estos
 import type { UserInput } from '../schemas';
+import { extractPayload, extractFileBuffer } from '../utils/requestBody';
 
 export const UserController = {
-	async create(req: Request, res: Response) {
-		const data = req.body as UserInput;
-		await UserService.createUser(data);
+	async create(req: ExtendedRequest, res: Response) {
+		const data = extractPayload(req.body) as UserInput;
+		const fileBuffer = extractFileBuffer(req);
+
+		await UserService.createUser(data, fileBuffer);
 		return successResponse(res, 'User created', 201);
 	},
 
@@ -28,16 +32,20 @@ export const UserController = {
 		return successResponse(res, user);
 	},
 
-	async update(req: Request, res: Response) {
+	async update(req: ExtendedRequest, res: Response) {
 		const id = req.params.id || req.user?.id;
-		const data = req.body as Partial<Omit<UserInput, 'role'>>;
+		let updateData: Partial<Omit<UserInput, 'role'>> = extractPayload(
+			req.body,
+		) as Partial<Omit<UserInput, 'role'>>;
 
-		if (!data || Object.keys(data).length === 0) {
+		if (!updateData || Object.keys(updateData).length === 0) {
 			throw new BadRequestError('Update data is required');
 		}
 		if (!id) throw new BadRequestError('ID is required');
 
-		await UserService.updateUser(id, data);
+		const fileBuffer = extractFileBuffer(req);
+
+		await UserService.updateUser(id, updateData, fileBuffer);
 		return successResponse(res, 'User updated', 204);
 	},
 
@@ -85,5 +93,12 @@ export const UserController = {
 		if (!id) throw new BadRequestError('User ID is required');
 		const recipes = await UserService.getCreatedRecipes(id);
 		return successResponse(res, recipes);
+	},
+
+	async getRecentOperations(req: Request, res: Response) {
+		const id = req.user?.id;
+		if (!id) throw new BadRequestError('User ID is required');
+		const ops = await UserService.getRecentOperations(id);
+		return successResponse(res, ops);
 	},
 };
