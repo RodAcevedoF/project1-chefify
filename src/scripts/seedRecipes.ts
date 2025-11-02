@@ -8,6 +8,7 @@ import {
 } from '../data';
 import { RecipeInputSchema, IngredientInputSchema } from '../schemas';
 import 'dotenv/config';
+import logger from '../utils/logger';
 
 interface MongoError {
 	code?: number;
@@ -19,29 +20,29 @@ export const runSeed = async () => {
 	try {
 		const db_url = process.env.DB_URL!;
 		await connect(db_url);
-		console.log('Connected to MongoDB');
+		logger.info('Connected to MongoDB');
 
 		await Promise.all([
 			Recipe.collection.drop().catch((e) => {
-				console.warn("Couldn't drop Recipe:", e.message);
+				logger.warn("Couldn't drop Recipe:", e.message);
 			}),
 			Ingredient.collection.drop().catch((e) => {
-				console.warn("Couldn't drop Ingredient:", e.message);
+				logger.warn("Couldn't drop Ingredient:", e.message);
 			}),
 		]);
-		console.log('Dropped collections');
+		logger.info('Dropped collections');
 
 		await Ingredient.syncIndexes();
 		await Recipe.syncIndexes();
 		const admin = await User.findOne({ role: 'admin' });
 		if (!admin)
 			throw new Error('Admin user not found. Please run seedAdmin first.');
-		console.log('Indexes synchronized');
+		logger.info('Indexes synchronized');
 
 		const validIngredients = seedIngredients.filter((raw) => {
 			const parsed = IngredientInputSchema.safeParse(raw);
 			if (!parsed.success) {
-				console.warn('Invalid ingredient:', parsed.error);
+				logger.warn('Invalid ingredient:', parsed.error);
 				return false;
 			}
 			return true;
@@ -61,7 +62,6 @@ export const runSeed = async () => {
 					userId: String(admin._id),
 				} as IngredientInsert;
 				if ((ingredient as IngredientInsert)._id)
-					// keep _id as ObjectId so DB doesn't auto-generate a new one
 					doc._id = new Types.ObjectId(String(ingredient._id));
 				await Ingredient.create(doc);
 				insertedIngredients.push(ingredient.name);
@@ -69,15 +69,15 @@ export const runSeed = async () => {
 				if ((error as MongoError).code === 11000) {
 					skippedIngredients.push(ingredient.name);
 				} else {
-					console.error('Error inserting ingredient:', error);
+					logger.error('Error inserting ingredient:', error);
 					process.exit(1);
 				}
 			}
 		}
 
-		console.log(`Inserted ${insertedIngredients.length} ingredients`);
+		logger.info(`Inserted ${insertedIngredients.length} ingredients`);
 		if (skippedIngredients.length) {
-			console.log(`Skipped ${skippedIngredients.length} duplicates`);
+			logger.info(`Skipped ${skippedIngredients.length} duplicates`);
 		}
 
 		const allIngredients = await Ingredient.find();
@@ -127,11 +127,11 @@ export const runSeed = async () => {
 						});
 						foundId = created._id.toString();
 						ingredientMap.set(candidate.toLowerCase().trim(), foundId);
-						console.log(
+						logger.info(
 							`Auto-created missing ingredient '${candidate}' with id ${foundId}`,
 						);
 					} catch {
-						console.warn(
+						logger.warn(
 							`Failed to auto-create ingredient '${candidate}' for recipe '${recipe.title}'. Skipping recipe.`,
 						);
 						unresolved = true;
@@ -149,11 +149,11 @@ export const runSeed = async () => {
 			const toInsert = {
 				...recipe,
 				ingredients: resolvedIngredients,
-				userId: String(admin._id), // Zod expects string for userId
+				userId: String(admin._id),
 			};
 			const parsed = RecipeInputSchema.safeParse(toInsert);
 			if (!parsed.success) {
-				console.warn(
+				logger.warn(
 					'Invalid recipe after resolving ingredients:',
 					recipe.title,
 					parsed.error,
@@ -168,22 +168,22 @@ export const runSeed = async () => {
 				if ((error as MongoError).code === 11000) {
 					skippedRecipes.push(recipe.title);
 				} else {
-					console.error('Error inserting recipe:', error);
+					logger.error('Error inserting recipe:', error);
 					process.exit(1);
 				}
 			}
 		}
 
-		console.log(`Inserted ${insertedRecipes.length} recipes`);
+		logger.info(`Inserted ${insertedRecipes.length} recipes`);
 		if (skippedRecipes.length) {
-			console.log(`Skipped ${skippedRecipes.length} duplicates`);
+			logger.info(`Skipped ${skippedRecipes.length} duplicates`);
 		}
 	} catch (error) {
-		console.error('Seeding failed:', error);
+		logger.error('Seeding failed:', error);
 		process.exit(1);
 	} finally {
 		await disconnect();
-		console.log('MongoDB disconnected');
+		logger.info('MongoDB disconnected');
 	}
 };
 

@@ -1,43 +1,37 @@
-import type { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
-import { JWTPayloadSchema } from "../schemas";
-import { UnauthorizedError, ForbiddenError, ValidationError } from "../errors";
-
-const JWT_SECRET = process.env.JWT_SECRET!;
-const COOKIE_NAME = process.env.COOKIE_NAME;
+import type { Response, NextFunction } from 'express';
+import type { ExtendedRequest } from '../types';
+import { UnauthorizedError, ForbiddenError } from '../errors';
 
 export const authenticate = (allowedRoles?: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    try {
-      if (!COOKIE_NAME) {
-        throw new ValidationError(
-          "COOKIE_NAME environment variable is not defined"
-        );
-      }
-      const tokenFromCookie = req.cookies?.[COOKIE_NAME];
+	return (req: ExtendedRequest, res: Response, next: NextFunction) => {
+		try {
+			const sessionUser = (
+				req.session as unknown as {
+					user?: { id: string; role?: string; email?: string };
+				}
+			)?.user;
 
-      const authHeader = req.headers.authorization;
-      const tokenFromHeader =
-        authHeader?.startsWith("Bearer ") && authHeader.split(" ")[1];
+			if (!sessionUser) {
+				throw new UnauthorizedError('Not authenticated');
+			}
 
-      const token = tokenFromCookie || tokenFromHeader;
+			const userPayload = {
+				id: sessionUser.id,
+				role: sessionUser.role ?? '',
+				email: sessionUser.email ?? '',
+			};
 
-      if (!token) throw new UnauthorizedError("No token provided");
+			req.user = userPayload as unknown as typeof req.user;
 
-      const rawPayload = jwt.verify(token, JWT_SECRET);
-      const payload = JWTPayloadSchema.parse(rawPayload);
+			if (Array.isArray(allowedRoles) && allowedRoles.length > 0) {
+				if (!userPayload.role || !allowedRoles.includes(userPayload.role)) {
+					throw new ForbiddenError('Access denied: insufficient permissions');
+				}
+			}
 
-      req.user = payload;
-
-      if (Array.isArray(allowedRoles) && allowedRoles.length > 0) {
-        if (!payload.role || !allowedRoles.includes(payload.role)) {
-          throw new ForbiddenError("Access denied: insufficient permissions");
-        }
-      }
-
-      next();
-    } catch (err) {
-      next(err);
-    }
-  };
+			return next();
+		} catch (err) {
+			next(err);
+		}
+	};
 };
