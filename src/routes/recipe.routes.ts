@@ -14,7 +14,12 @@ router.get('/', RecipeController.get);
 router.get('/suggested', limitAIUsage, RecipeController.getSuggestedRecipe);
 router.get('/:id', RecipeController.get);
 
-router.patch('/:id', recipeGuard, uploadMedia(), RecipeController.update);
+router.patch(
+	'/:id',
+	recipeGuard,
+	uploadMedia('mediafile', false),
+	RecipeController.update,
+);
 
 router.delete('/:id', recipeGuard, RecipeController.delete);
 
