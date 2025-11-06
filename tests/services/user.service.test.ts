@@ -34,6 +34,8 @@ beforeEach(() => {
 		'findByEmail',
 		'createUser',
 		'findAll',
+		'findAllWithRecipeCount',
+		'findPaginatedWithRecipeCount',
 		'findById',
 		'updateById',
 		'deleteById',
@@ -73,7 +75,10 @@ test('createUser: create user if email does not previously exist', async () => {
 });
 
 test('getAllUsers: return all users', async () => {
-	UserRepository.findAll = mock(() => Promise.resolve([mockUser]));
+	const returned = [{ ...mockUser, recipesCount: 0 }];
+	UserRepository.findAllWithRecipeCount = mock(() =>
+		Promise.resolve(returned as any),
+	);
 	const users = await UserService.getAllUsers();
 	expect(users.length).toBe(1);
 });

@@ -29,7 +29,16 @@ export const UserService = {
 	},
 
 	async getAllUsers(): Promise<IUser[]> {
-		return await UserRepository.findAll();
+		return await UserRepository.findAllWithRecipeCount();
+	},
+
+	async getUsersPaginated(opts?: {
+		page?: number;
+		limit?: number;
+		sort?: number;
+		search?: string;
+	}) {
+		return await UserRepository.findPaginatedWithRecipeCount(opts);
 	},
 
 	async getUserById(id: string): Promise<Omit<IUser, 'password'>> {

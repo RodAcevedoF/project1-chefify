@@ -1,4 +1,4 @@
-import type { HydratedDocument } from 'mongoose';
+import type { HydratedDocument, PipelineStage } from 'mongoose';
 import { Recipe, User } from '../models';
 import type { IRecipe, IUser, UserInput, Operation } from '../schemas';
 
@@ -7,12 +7,89 @@ export const UserRepository = {
 		await User.create(data);
 	},
 
+	async findPaginatedWithRecipeCount(opts?: {
+		page?: number;
+		limit?: number;
+		sort?: number; // 1 or -1
+		search?: string;
+	}): Promise<{ items: (IUser & { recipesCount?: number })[]; total: number }> {
+		const page = Math.max(1, opts?.page ?? 1);
+		const limit = Math.max(0, opts?.limit ?? 0);
+		const sort = opts?.sort === 1 ? 1 : -1;
+		const search = opts?.search?.trim();
+
+		const match: Record<string, unknown> = {};
+		if (search) {
+			match['$or'] = [
+				{ name: { $regex: search, $options: 'i' } },
+				{ email: { $regex: search, $options: 'i' } },
+			];
+		}
+
+		const pipeline: PipelineStage[] = [
+			{ $match: match } as unknown as PipelineStage,
+			{ $sort: { createdAt: sort } } as unknown as PipelineStage,
+			{
+				$lookup: {
+					from: 'recipes',
+					localField: '_id',
+					foreignField: 'userId',
+					as: 'recipesArr',
+				},
+			} as unknown as PipelineStage,
+			{
+				$addFields: {
+					recipesCount: { $size: { $ifNull: ['$recipesArr', []] } },
+				},
+			} as unknown as PipelineStage,
+			{ $project: { recipesArr: 0 } } as unknown as PipelineStage,
+		];
+
+		if (limit > 0) {
+			const skip = (page - 1) * limit;
+			pipeline.push({ $skip: skip } as unknown as PipelineStage);
+			pipeline.push({ $limit: limit } as unknown as PipelineStage);
+		}
+
+		const items = (await User.aggregate(pipeline)) as (IUser & {
+			recipesCount?: number;
+		})[];
+		const total = await User.countDocuments(match);
+		return { items, total };
+	},
+
 	async insertMany(users: UserInput[]): Promise<UserInput[]> {
 		return await User.insertMany(users);
 	},
 
 	async findAll(): Promise<IUser[]> {
 		return await User.find().sort({ createdAt: -1 });
+	},
+
+	async findAllWithRecipeCount(): Promise<
+		(IUser & { recipesCount?: number })[]
+	> {
+		const pipeline: PipelineStage[] = [
+			{ $sort: { createdAt: -1 } } as unknown as PipelineStage,
+			{
+				$lookup: {
+					from: 'recipes',
+					localField: '_id',
+					foreignField: 'userId',
+					as: 'recipesArr',
+				},
+			} as unknown as PipelineStage,
+			{
+				$addFields: {
+					recipesCount: { $size: { $ifNull: ['$recipesArr', []] } },
+				},
+			} as unknown as PipelineStage,
+			{ $project: { recipesArr: 0 } } as unknown as PipelineStage,
+		];
+
+		return (await User.aggregate(pipeline)) as (IUser & {
+			recipesCount?: number;
+		})[];
 	},
 
 	async findById(id: string): Promise<HydratedDocument<IUser> | null> {

@@ -53,6 +53,34 @@ export const AdminController = {
 		);
 	},
 	async getUsers(req: Request, res: Response) {
+		// ?page=1&limit=20&sort=-1&search=alice
+		const page =
+			req.query.page ? parseInt(String(req.query.page), 10) : undefined;
+		const limit =
+			req.query.limit ? parseInt(String(req.query.limit), 10) : undefined;
+		const sort =
+			req.query.sort ?
+				parseInt(String(req.query.sort), 10) === 1 ?
+					1
+				:	-1
+			:	undefined;
+		const search = req.query.search ? String(req.query.search) : undefined;
+
+		if (page || limit || sort || search) {
+			const { items, total } = await UserService.getUsersPaginated({
+				page,
+				limit,
+				sort,
+				search,
+			});
+			if (!items) throw new NotFoundError('No users found');
+			return successResponse(
+				res,
+				{ items, meta: { total, page: page ?? 1, limit: limit ?? 0 } },
+				200,
+			);
+		}
+
 		const users = await UserService.getAllUsers();
 		if (!users) throw new NotFoundError('No users found');
 		successResponse(res, users, 200);

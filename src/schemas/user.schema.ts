@@ -1,6 +1,7 @@
 import { Schema } from 'mongoose';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
+import { hashPasswordOnUpdate } from '@/utils/hashPasswordOnUpdate';
 
 const aiUsageSchema = new Schema(
 	{
@@ -58,6 +59,16 @@ export const userSchema = new Schema(
 		timestamps: true,
 	},
 );
+
+userSchema.virtual('recipesCount', {
+	ref: 'Recipe',
+	localField: '_id',
+	foreignField: 'userId',
+	count: true,
+});
+
+userSchema.set('toObject', { virtuals: true });
+userSchema.set('toJSON', { virtuals: true });
 
 export const UserInputSchema = z
 	.object({
@@ -138,6 +149,9 @@ userSchema.pre('save', async function (next) {
 		next(err as Error);
 	}
 });
+
+userSchema.pre('findOneAndUpdate', hashPasswordOnUpdate);
+userSchema.pre('updateOne', hashPasswordOnUpdate);
 
 userSchema.index({ role: 1 });
 userSchema.index({ createdAt: -1 });

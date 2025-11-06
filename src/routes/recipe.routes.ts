@@ -9,7 +9,7 @@ const router = Router();
 
 router.use(authenticate());
 
-router.post('/', uploadMedia(), RecipeController.create);
+router.post('/', uploadMedia('mediafile', false), RecipeController.create);
 router.get('/', RecipeController.get);
 router.get('/suggested', limitAIUsage, RecipeController.getSuggestedRecipe);
 router.get('/:id', RecipeController.get);
