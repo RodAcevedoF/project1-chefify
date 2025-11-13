@@ -5,6 +5,89 @@ import { MediaService } from './media.service';
 import { sanitizeUser, mediaEntityConfig } from '../utils';
 
 export const UserService = {
+	async importUsersFromCsv(records: Partial<UserInput>[]): Promise<{
+		inserted: UserInput[];
+		skipped: { row: number; reason: string; data?: Partial<UserInput> }[];
+	}> {
+		const inserted: UserInput[] = [];
+		const skipped: {
+			row: number;
+			reason: string;
+			data?: Partial<UserInput>;
+		}[] = [];
+		for (let i = 0; i < records.length; i++) {
+			const rec = records[i] ?? {};
+			const row = i + 1;
+			const name = String((rec as Partial<UserInput>).name ?? '').trim();
+			const email = String((rec as Partial<UserInput>).email ?? '').trim();
+			const password = String(
+				(rec as Partial<UserInput>).password ?? '',
+			).trim();
+
+			if (!name || !email || !password) {
+				skipped.push({
+					row,
+					reason: 'Missing required fields (name, email, password)',
+					data: rec,
+				});
+				continue;
+			}
+
+			try {
+				const role =
+					(
+						typeof (rec as Partial<UserInput>).role === 'string' &&
+						((rec as Partial<UserInput>).role === 'admin' ||
+							(rec as Partial<UserInput>).role === 'user')
+					) ?
+						((rec as Partial<UserInput>).role as 'user' | 'admin')
+					:	'user';
+				const shortBio =
+					typeof (rec as Partial<UserInput>).shortBio === 'string' ?
+						((rec as Partial<UserInput>).shortBio as string)
+					:	undefined;
+				const payload: UserInput = {
+					name,
+					email,
+					password,
+					role,
+				} as UserInput;
+				if (shortBio) payload.shortBio = shortBio;
+
+				// allow importing isVerified from CSV/XLSX (accept boolean or common string forms)
+				const rawIsVerified = (rec as unknown as Record<string, unknown>)[
+					'isVerified'
+				];
+				let parsedIsVerified: boolean | undefined;
+				if (typeof rawIsVerified === 'boolean')
+					parsedIsVerified = rawIsVerified;
+				else if (typeof rawIsVerified === 'string') {
+					const norm = rawIsVerified.trim().toLowerCase();
+					if (norm === 'true' || norm === '1' || norm === 'yes' || norm === 'y')
+						parsedIsVerified = true;
+					else if (
+						norm === 'false' ||
+						norm === '0' ||
+						norm === 'no' ||
+						norm === 'n'
+					)
+						parsedIsVerified = false;
+				}
+				if (typeof parsedIsVerified === 'boolean')
+					payload.isVerified = parsedIsVerified;
+				await UserService.createUser(payload);
+				inserted.push(payload);
+			} catch (err: unknown) {
+				let reason = 'Unknown error';
+				if (err && typeof err === 'object' && 'message' in err) {
+					reason = (err as Error).message ?? reason;
+				}
+				skipped.push({ row, reason, data: rec });
+			}
+		}
+
+		return { inserted, skipped };
+	},
 	async createUser(data: UserInput, fileBuffer?: Buffer): Promise<void> {
 		const existing = await UserRepository.findByEmail(data.email);
 		if (existing) throw new BadRequestError('Email already exists');

@@ -7,6 +7,7 @@
 		"test": "bun test",
 		"start": "bun index.ts",
 		"dev": "bun --watch index.ts",
+		"dev:with-redis": "docker compose -f docker-compose.yml up -d redis && bun --watch index.ts",
 		"lint": "eslint .",
 		"typecheck": "tsc --noEmit",
 		"recipe-seed": "bun ./src/scripts/seedRecipes.ts",

@@ -1,5 +1,11 @@
 import { suggestRecipePrompt, RecipeCategories } from '../data';
-import type { ingredientPromptType, SearchParams } from '../types';
+import {
+	allowedUnits,
+	normalizeName,
+	unitMap,
+	type ingredientPromptType,
+	type SearchParams,
+} from '../types';
 import { BadRequestError, ConflictError, NotFoundError } from '../errors';
 import { Recipe } from '../models';
 import { RecipeRepository } from '../repositories';
@@ -9,12 +15,12 @@ import {
 	type IRecipe,
 	type Operation,
 } from '../schemas';
+import type { IngredientInput } from '../schemas';
 import { getSuggestedRecipe, mediaEntityConfig } from '../utils';
 import { IngredientService } from './ingredient.service';
 import { MediaService } from './media.service';
 import { UserService } from './user.service';
 import logger from '../utils/logger';
-
 export const RecipeService = {
 	async createRecipe(
 		data: RecipeInput,
@@ -71,19 +77,170 @@ export const RecipeService = {
 		}
 	},
 
-	async importRecipesFromCsv(
-		recipes: Partial<RecipeInput>[],
-	): Promise<RecipeInput[]> {
+	async importRecipesFromCsv(recipes: Partial<RecipeInput>[]): Promise<{
+		inserted: IRecipe[];
+		skipped: { row: number; reason: string; data?: unknown }[];
+	}> {
 		const validRecipes: RecipeInput[] = [];
-		for (const recipe of recipes) {
-			const parsed = RecipeInputSchema.safeParse(recipe);
-			if (parsed.success) {
-				validRecipes.push(parsed.data);
-			} else {
-				logger.warn('Invalid recipe skipped:', parsed.error);
+		const skipped: { row: number; reason: string; data?: unknown }[] = [];
+		const nameToId = new Map<string, string>();
+
+		for (let i = 0; i < recipes.length; i++) {
+			const recipe = recipes[i];
+			if (!recipe) {
+				skipped.push({ row: i + 1, reason: 'empty row', data: null });
+				continue;
+			}
+			try {
+				if (!Array.isArray(recipe.ingredients)) {
+					logger.warn('Recipe skipped, missing ingredients array:', recipe);
+					skipped.push({
+						row: i + 1,
+						reason: 'missing ingredients array',
+						data: recipe,
+					});
+					continue;
+				}
+
+				const normalizedIngredients: {
+					ingredient: string;
+					quantity: number;
+				}[] = [];
+				let skipRecipe = false;
+
+				for (const rawIt of recipe.ingredients as unknown[]) {
+					const it = rawIt as Record<string, unknown>;
+					try {
+						const quantity = Number(it['quantity'] ?? it['qty'] ?? 0);
+						if (!quantity || isNaN(quantity)) {
+							logger.warn('Invalid ingredient quantity, skipping recipe', it);
+							skipRecipe = true;
+							break;
+						}
+						const maybeId =
+							typeof it['ingredient'] === 'string' ?
+								String(it['ingredient']).trim()
+							:	'';
+						if (/^[0-9a-fA-F]{24}$/.test(maybeId)) {
+							normalizedIngredients.push({ ingredient: maybeId, quantity });
+							continue;
+						}
+
+						// Determine name from possible fields
+						const rawName = (it['ingredientName'] ??
+							it['name'] ??
+							it['ingredient']) as string | undefined;
+						if (!rawName || typeof rawName !== 'string') {
+							logger.warn(
+								'Ingredient name missing or invalid, skipping recipe',
+								it,
+							);
+							skipRecipe = true;
+							break;
+						}
+
+						const name = normalizeName(rawName);
+
+						let id = nameToId.get(name);
+						if (!id) {
+							let existing = await IngredientService.findByStrictName(name);
+							if (!existing) {
+								// determine unit and map synonyms
+								let unit: IngredientInput['unit'] = 'unit';
+								if (typeof it['unit'] === 'string') {
+									const maybe = String(it['unit']).trim().toLowerCase();
+									if (maybe in unitMap) {
+										unit = unitMap[maybe] as IngredientInput['unit'];
+									} else if (
+										(allowedUnits as readonly string[]).includes(maybe)
+									) {
+										unit = maybe as IngredientInput['unit'];
+									}
+								}
+
+								try {
+									await IngredientService.createIngredient({ name, unit });
+								} catch (err) {
+									logger.debug(
+										'Ingredient create conflict or error (ignored):',
+										err,
+									);
+								}
+								try {
+									existing =
+										await IngredientService.getIngredienteByStricName(name);
+								} catch (err) {
+									logger.warn(
+										'Failed to create or fetch ingredient for name',
+										name,
+										err,
+									);
+									skipRecipe = true;
+									break;
+								}
+							}
+							id = existing._id.toString();
+							nameToId.set(name, id);
+						}
+
+						normalizedIngredients.push({ ingredient: id!, quantity });
+					} catch (err) {
+						logger.warn('Error normalizing ingredient', err, it);
+						skipRecipe = true;
+						break;
+					}
+				}
+
+				if (skipRecipe) {
+					skipped.push({
+						row: i + 1,
+						reason: 'ingredient normalization failed',
+						data: recipe,
+					});
+					continue;
+				}
+
+				const candidate = {
+					...recipe,
+					ingredients: normalizedIngredients,
+				};
+
+				const parsed = RecipeInputSchema.safeParse(candidate);
+				if (parsed.success) {
+					validRecipes.push(parsed.data);
+				} else {
+					logger.warn(
+						'Invalid recipe skipped after normalization:',
+						parsed.error,
+					);
+					skipped.push({
+						row: i + 1,
+						reason: 'validation failed',
+						data: parsed.error.format ? parsed.error.format() : parsed.error,
+					});
+				}
+			} catch (err) {
+				logger.warn(
+					'Error processing recipe during import, skipping',
+					err,
+					recipe,
+				);
+				skipped.push({ row: i + 1, reason: 'processing error', data: recipe });
 			}
 		}
-		return await RecipeRepository.insertMany(validRecipes);
+
+		let inserted: IRecipe[] = [];
+		if (validRecipes.length) {
+			try {
+				inserted = await RecipeRepository.insertMany(validRecipes);
+			} catch (err) {
+				logger.warn('Failed to insert some recipes', err);
+				// FIXME: best-effort
+				skipped.push({ row: 0, reason: 'insertMany failed', data: err });
+			}
+		}
+
+		return { inserted, skipped };
 	},
 
 	async updateRecipe(

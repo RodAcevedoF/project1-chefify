@@ -1,3 +1,4 @@
+import type { IngredientInput } from '@/schemas';
 import type { Request } from 'express';
 
 export interface ExtendedRequest extends Request {
@@ -46,3 +47,36 @@ export interface SearchParams {
 	id?: string;
 	query?: Record<string, unknown>;
 }
+
+export const normalizeName = (s: string) =>
+	s.trim().toLowerCase().replace(/\s+/g, ' ');
+
+export const unitMap: Record<string, IngredientInput['unit']> = {
+	g: 'gr',
+	gr: 'gr',
+	gram: 'gr',
+	grams: 'gr',
+	kg: 'gr',
+	l: 'ml',
+	ml: 'ml',
+	liter: 'ml',
+	litre: 'ml',
+	tsp: 'tsp',
+	teaspoon: 'tsp',
+	tbsp: 'tbsp',
+	tablespoon: 'tbsp',
+	clove: 'cloves',
+	cloves: 'cloves',
+	pc: 'unit',
+	pcs: 'unit',
+	unit: 'unit',
+} as const;
+
+export const allowedUnits = [
+	'gr',
+	'ml',
+	'tsp',
+	'tbsp',
+	'cloves',
+	'unit',
+] as const;

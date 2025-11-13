@@ -1,12 +1,12 @@
 # Chefify - Backend API
 
-Chefify es una API RESTful construida con **Node.js**, **Express**, **MongoDB Atlas**, **Bun** y **TypeScript** que gestiona usuarios, recetas, ingredientes e imágenes. Incluye autenticación JWT, control de roles (admin/user), subida de imágenes con Cloudinary, un sistema robusto de refresco de tokens, verificación de email e integración con la API de OpenAI para la generación de recetas mediante LLM. Testing con **Bun** y **Supertest**. 
+Chefify es una API RESTful construida con **Node.js**, **Express**, **MongoDB Atlas**, **Bun** y **TypeScript** que gestiona usuarios, recetas, ingredientes e imágenes. Incluye autenticación JWT, control de roles (admin/user), subida de imágenes con Cloudinary, un sistema robusto de refresco de tokens, verificación de email e integración con la API de OpenAI para la generación de recetas mediante LLM. Testing con **Bun** y **Supertest**.
 
 ---
 
 ## ✨ Características Principales
 
-- Autenticación segura con JWT + Refresh Token
+- Autenticación segura con sesiones server-side (Redis)
 - Verificación de email mediante token.
 - Flujo de reseteo de password
 - Middleware de roles (admin/user)
@@ -15,7 +15,7 @@ Chefify es una API RESTful construida con **Node.js**, **Express**, **MongoDB At
 - Seed para poblar colecciones
 - Seed para inicialización de admin
 - Creación de recetas originales mediante integración con OpenAI.
-- Validación con Zod. 
+- Validación con Zod.
 
 ---
 
@@ -44,14 +44,12 @@ PORT=3000
 MONGO_URI=your_mongo_atlas_connection
 JWT_SECRET=your_jwt_secret
 COOKIE_NAME=accessToken
-REFRESH_COOKIE_NAME=refreshToken
 CLOUDINARY_NAME=your_cloudinary_name
 CLOUDINARY_API_KEY=your_key
 CLOUDINARY_API_SECRET=your_secret
 BASE_ROUTE=chefify/api/v1
 NODE_ENV=development
 JWT_EXPIRES_IN="<Ex: "1h">";
-REFRESH_EXPIRES_IN_DAYS=<Ex: 14>;
 OPENAI_API_KEY=your_key
 SMTP_HOST=your_smtp
 SMTP_PORT=port
@@ -72,19 +70,16 @@ SMTP_PASS=smtp_pass
 
 ```
 POST    /auth/login - logueo de usuario, debe estar verificado
-POST    /auth/logout - Elimina cookies (access y refresh)
-POST    /auth/refresh - refresh token
-POST    /auth/logout-all - Elimina todas las sesiones abiertas
-POST    /auth/logout-all/:id - (Solo admin)
+POST    /auth/logout - Destruye la sesión server-side y borra la cookie de sesión
+POST    /auth/logout-all - Elimina todas las sesiones abiertas para el usuario autenticado
+POST    /auth/logout-all/:id - (Solo admin) - Elimina sesiones de un usuario específico
 GET     /auth/verify-email - Verificacion de email flujo con nodemailer
 GET     /auth/forgot-password - Reset de password flujo con nodemailer
 POST    /auth/reset-password - Cambio de password con el token de /forgot-password
+GET     /auth/me - Obtener el usuario autenticado / estado de la sesión
 ```
 
-Los tokens se gestionan mediante cookies seguras:
-
-- `accessToken`: expira en 1h
-- `refreshToken`: expira en 7 días
+La autenticación se gestiona mediante sesiones almacenadas en el servidor (Redis). El cliente recibe una cookie de sesión HttpOnly; el frontend debe enviar credenciales (cookies) con las peticiones.
 
 Otros tokens como los de verificación y reset se manejan en DB.
 
