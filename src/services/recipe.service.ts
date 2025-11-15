@@ -279,6 +279,16 @@ export const RecipeService = {
 			}
 		}
 
+		if ('imgUrl' in data && !data.imgUrl) {
+			try {
+				await MediaService.deleteEntityImage(id, 'recipe');
+				delete (data as Partial<IRecipe>).imgUrl;
+				delete (data as Partial<IRecipe>).imgPublicId;
+			} catch (err) {
+				logger.warn('Failed to delete recipe image from Cloudinary', err);
+			}
+		}
+
 		await RecipeRepository.updateById(id, data);
 
 		if (!userId) return;

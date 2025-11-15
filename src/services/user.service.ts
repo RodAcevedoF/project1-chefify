@@ -3,6 +3,7 @@ import type { UserInput, IUser, IRecipe, Operation } from '../schemas';
 import { BadRequestError, NotFoundError } from '../errors';
 import { MediaService } from './media.service';
 import { sanitizeUser, mediaEntityConfig } from '../utils';
+import logger from '../utils/logger';
 
 export const UserService = {
 	async importUsersFromCsv(records: Partial<UserInput>[]): Promise<{
@@ -156,6 +157,16 @@ export const UserService = {
 					delete (data as Partial<UserInput>).imgPublicId;
 			} catch (err) {
 				throw err;
+			}
+		}
+
+		if ('imgUrl' in data && !data.imgUrl) {
+			try {
+				await MediaService.deleteEntityImage(id, 'user');
+				delete (data as Partial<UserInput>).imgUrl;
+				delete (data as Partial<UserInput>).imgPublicId;
+			} catch (err) {
+				logger.warn('Failed to delete user image from Cloudinary', err);
 			}
 		}
 
