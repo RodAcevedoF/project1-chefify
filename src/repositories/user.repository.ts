@@ -185,4 +185,16 @@ export const UserRepository = {
 			resetPasswordExpires: { $gt: new Date() },
 		});
 	},
+
+	async findOperations(): Promise<Operation[]> {
+		const pipeline: PipelineStage[] = [
+			{ $project: { recentOps: 1 } } as unknown as PipelineStage,
+			{ $unwind: '$recentOps' } as unknown as PipelineStage,
+			{ $replaceRoot: { newRoot: '$recentOps' } } as unknown as PipelineStage,
+			{ $sort: { createdAt: -1 } } as unknown as PipelineStage,
+		];
+
+		const ops = (await User.aggregate(pipeline)) as Operation[];
+		return ops;
+	},
 };
