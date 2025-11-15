@@ -6,3 +6,4 @@ export * from './media.service';
 export * from './email.service';
 export * from './follow.service';
 export * from './like.service';
+export * from './dashboard.service';
