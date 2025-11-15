@@ -12,6 +12,7 @@ router.post('/recipes', uploadDataFile, AdminController.importRecipes);
 router.post('/ingredients', uploadDataFile, AdminController.importIngredients);
 router.post('/users/import', uploadDataFile, AdminController.importUsers);
 router.get('/recipes/template', AdminController.getRecipesTemplate);
+router.get('/operations', AdminController.getRecentOperations);
 router.get('/recipes', AdminController.getRecipes);
 router.get('/users/template', AdminController.getUsersTemplate);
 router.get('/users', AdminController.getUsers);

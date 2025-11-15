@@ -8,6 +8,7 @@ import {
 } from '../utils';
 import { IngredientService, RecipeService, UserService } from '../services';
 import ImportsService from '../services/imports.service';
+import DashboardService from '../services/dashboard.service';
 import { Recipe } from '../models';
 
 export const AdminController = {
@@ -115,6 +116,16 @@ export const AdminController = {
 		);
 		res.type(template.mime);
 		return res.send(template.csv);
+	},
+	async getRecentOperations(req: Request, res: Response) {
+		if (req.user?.role !== 'admin') {
+			throw new ForbiddenError('Only admins can access recent operations');
+		}
+
+		const limit =
+			req.query.limit ? parseInt(String(req.query.limit), 10) : undefined;
+		const items = await DashboardService.getRecentOperations(limit);
+		return successResponse(res, { items }, 200);
 	},
 	async getUsers(req: Request, res: Response) {
 		// ?page=1&limit=20&sort=-1&search=alice
