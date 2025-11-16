@@ -25,13 +25,21 @@ export type LoginResponse = {
 	message?: string;
 };
 
-export type EmailType = 'VERIFICATION' | 'RESET_PASSWORD';
+export type EmailType = 'VERIFICATION' | 'RESET_PASSWORD' | 'CONTACT';
+
 export interface SendEmailOptions {
 	to: string;
 	type: EmailType;
-	payload: {
-		link: string;
-	};
+	payload:
+		| {
+				link: string;
+		  }
+		| {
+				// contact payload
+				name: string;
+				replyTo: string;
+				message: string;
+		  };
 }
 
 export type ingredientPromptType = {

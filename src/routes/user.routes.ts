@@ -23,4 +23,6 @@ router.delete(
 	UserController.deleteRecipe,
 );
 
+router.post('/contact', UserController.contact);
+
 export default router;

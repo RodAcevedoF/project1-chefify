@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import type { ExtendedRequest } from '../types';
 import { UserService } from '../services';
+import { sendEmail } from '../services/email.service';
 import { successResponse } from '../utils';
 import { BadRequestError } from '../errors'; // Asumiendo que tienes estos
 import type { UserInput } from '../schemas';
@@ -100,5 +101,23 @@ export const UserController = {
 		if (!id) throw new BadRequestError('User ID is required');
 		const ops = await UserService.getRecentOperations(id);
 		return successResponse(res, ops);
+	},
+
+	async contact(req: Request, res: Response) {
+		const { name, replyTo, message } = req.body ?? {};
+		if (!name || !replyTo || !message) {
+			throw new BadRequestError('name, replyTo and message are required');
+		}
+
+		const to = process.env.CONTACT_EMAIL || process.env.SMTP_USER;
+		if (!to)
+			throw new BadRequestError('Contact email recipient not configured');
+		await sendEmail({
+			to,
+			type: 'CONTACT',
+			payload: { name, replyTo, message },
+		});
+
+		return successResponse(res, { message: 'Message sent' });
 	},
 };
