@@ -5,7 +5,6 @@ import { BadRequestError, ValidationError } from '../errors';
 import { COOKIE_OPTIONS, COOKIE_NAME } from '../utils';
 import type { UserInput } from '../schemas';
 import type { Session, SessionData } from 'express-session';
-// Note: Redis/session operations are handled in `AuthService`.
 
 export const AuthController = {
 	async register(req: Request, res: Response) {
@@ -18,10 +17,8 @@ export const AuthController = {
 		const { token } = req.query;
 		if (!token) throw new BadRequestError('Invalid token');
 		await AuthService.verifyEmail(token.toString());
-		return successResponse(res, {
-			message: 'Email verified, proceed to login',
-			verified: true,
-		});
+		const frontend = process.env.FRONTEND_URL;
+		return res.redirect(`${frontend}/`);
 	},
 
 	async login(req: Request, res: Response) {
@@ -78,8 +75,6 @@ export const AuthController = {
 		if (!userId) {
 			throw new ValidationError('User ID not found in request');
 		}
-
-		// Delegate session clearing to the service so controller remains thin.
 		await AuthService.clearAllSessions(userId);
 
 		const sessionCookieName = process.env.SESSION_COOKIE_NAME || 'sid';
