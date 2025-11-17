@@ -1,6 +1,6 @@
 # Chefify - Backend API
 
-Chefify es una API RESTful construida con **Node.js**, **Express**, **MongoDB Atlas**, **Bun** y **TypeScript** que gestiona usuarios, recetas, ingredientes e imágenes. Incluye autenticación JWT, control de roles (admin/user), subida de imágenes con Cloudinary, un sistema robusto de refresco de tokens, verificación de email e integración con la API de OpenAI para la generación de recetas mediante LLM. Testing con **Bun** y **Supertest**.
+Chefify es una API RESTful construida con **Node.js**, **Express**, **MongoDB Atlas**, **Bun** y **TypeScript** que gestiona usuarios, recetas, ingredientes e imágenes. La autenticación se gestiona por sesiones server-side (Redis). Testing con **Bun** y **Supertest**.
 
 ---
 
@@ -31,31 +31,17 @@ Todas las rutas están bajo el prefijo:
 
 ## 📂 Instalación
 
+Para un resumen rápido, sigue los pasos en la documentación completa en `/docs`.
+
+Clona y prepara el proyecto:
+
 ```bash
 git clone https://github.com/tuusuario/chefify-backend.git
 cd chefify-backend
-npm install
+bun install
 ```
 
-### Variables de entorno `.env`
-
-```dotenv
-PORT=3000
-MONGO_URI=your_mongo_atlas_connection
-JWT_SECRET=your_jwt_secret
-COOKIE_NAME=accessToken
-CLOUDINARY_NAME=your_cloudinary_name
-CLOUDINARY_API_KEY=your_key
-CLOUDINARY_API_SECRET=your_secret
-BASE_ROUTE=chefify/api/v1
-NODE_ENV=development
-JWT_EXPIRES_IN="<Ex: "1h">";
-OPENAI_API_KEY=your_key
-SMTP_HOST=your_smtp
-SMTP_PORT=port
-SMTP_USER=user_account
-SMTP_PASS=smtp_pass
-```
+Variables de entorno: copia `.env.example` a `.env` y completa los valores. Para más detalles y lista completa de variables revisa `docs/installation.md`.
 
 ---
 
@@ -66,22 +52,16 @@ SMTP_PASS=smtp_pass
 - `user`: Por defecto al registrarse
 - `admin`: Puede cambiar roles y eliminar cuentas de cualquier usuario
 
-### Endpoints de Auth
+### Endpoints de Auth (resumen)
 
 ```
-POST    /auth/login - logueo de usuario, debe estar verificado
+POST    /auth/login - logueo de usuario (crea sesión server-side)
 POST    /auth/logout - Destruye la sesión server-side y borra la cookie de sesión
 POST    /auth/logout-all - Elimina todas las sesiones abiertas para el usuario autenticado
-POST    /auth/logout-all/:id - (Solo admin) - Elimina sesiones de un usuario específico
-GET     /auth/verify-email - Verificacion de email flujo con nodemailer
-GET     /auth/forgot-password - Reset de password flujo con nodemailer
-POST    /auth/reset-password - Cambio de password con el token de /forgot-password
 GET     /auth/me - Obtener el usuario autenticado / estado de la sesión
 ```
 
-La autenticación se gestiona mediante sesiones almacenadas en el servidor (Redis). El cliente recibe una cookie de sesión HttpOnly; el frontend debe enviar credenciales (cookies) con las peticiones.
-
-Otros tokens como los de verificación y reset se manejan en DB.
+La autenticación se gestiona mediante sesiones almacenadas en el servidor (Redis). El cliente recibe una cookie de sesión HttpOnly; el frontend debe enviar credenciales (cookies) con las peticiones. Para detalles y migración desde la estrategia previa (JWT) ver `docs/migration/session-auth.md`.
 
 ---
 
