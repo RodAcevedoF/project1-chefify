@@ -6,14 +6,11 @@ Use this documentation as the canonical source for architecture, API routes, set
 
 Contents
 
-- [Architecture](./architecture/overview.md)
-- [Architecture Diagrams](./architecture/diagrams.md)
-- [API Endpoints](./api/endpoints.md)
-- [Technologies](./technologies.md)
-- [Dependencies](./dependencies.md)
-- [Installation & Development](./installation.md)
-- [Migration Guides](./migration/session-auth.md)
-- [FAQ](./faq.md)
-- [Changelog](./changelog.md)
-
-If you need quick start instructions, see `../README.md` for a short entry point.
+- [Architecture](./docs/architecture/overview.md)
+- [Architecture Diagrams](./docs/architecture/diagrams.md)
+- [API Endpoints](./docs/api/endpoints.md)
+- [Technologies](./docs/technologies.md)
+- [Dependencies](./docs/dependencies.md)
+- [Installation & Development](./docs/installation.md)
+- [FAQ](./docs/faq.md)
+- [Changelog](./docs/changelog.md)
