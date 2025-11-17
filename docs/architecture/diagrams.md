@@ -42,7 +42,7 @@ sequenceDiagram
   API-->>C: Set-Cookie: sessionId (HttpOnly, Secure)
   C-->>API: subsequent requests include cookie
 
-  Note over R, API: Sessions persisted in Redis; session contains minimal user info: id, role, email
+  Note over R, API: Sessions persisted in Redis — session contains minimal user info id, role, email
 ```
 
 ## Sequence: Protected Request Flow
