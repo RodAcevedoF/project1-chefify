@@ -1,73 +1,62 @@
 # Dependencies
 
-Key dependencies and where they are used:
+This document lists the project's real runtime and developer dependencies (matched to `package.json`) and provides guidance for managing them.
 
-- `express` — HTTP server and routing.
-- `express-session` — session middleware.
-- `connect-redis` / `redis` — Redis client and session store integration.
-- `mongoose` — MongoDB ODM.
-- `zod` — schema validation.
-- `supertest` — HTTP assertions in tests.
-- `cloudinary` — image uploads.
-- `jsonwebtoken` — (legacy) token utilities; retained only if required for tokens (most app flows are session-based).
+## Key runtime dependencies (selected)
 
-Dev & testing
+These are the libraries used at runtime by the application (not an exhaustive npm list — see `package.json` for the full set):
 
-- `bun` — runtime and test runner.
+- `express` — HTTP server and routing
+- `express-session` — server-side sessions
+- `connect-redis` / `redis` — Redis client and session-store integration
+- `mongoose` — MongoDB ODM
+- `zod` — request/response validation
+- `cloudinary` — media uploads and CDN
+- `openai` — AI recipe generation integration
+- `nodemailer` — email sending (verification, reset)
+- `bcryptjs` — password hashing
+- `multer` — multipart file parsing for uploads
+- `csv-parse` — CSV parsing for bulk imports
+- `xlsx` — spreadsheet parsing for import/export
+- `dotenv` — environment variable loading
 
-````markdown
-# Dependencies
+Additionally, various utility libraries are present (`uuid`, `streamifier`, `morgan`, `helmet`, `cors`, `cookie-parser`, etc.). See `package.json` for the complete list and exact versions.
 
-This document describes the project's dependencies, where they are used, and recommendations for managing and upgrading them.
+## Dev & test dependencies
 
-## Overview
+- `bun` — runtime, package manager and test runner used by this project
+- `supertest` — HTTP integration testing helper
+- `mongodb-memory-server` — in-memory MongoDB for fast tests
+- `eslint`, `prettier`, `@typescript-eslint/*` — linting and formatting
+- TypeScript types for common packages (`@types/*`) are present as dependencies in the repo (some projects keep them under `dependencies` to make tooling consistent; check `package.json`).
 
-The project runs on Bun and uses Express + Mongoose for the API and MongoDB persistence. Sessions are stored in Redis. We split packages into:
+## Where to check the authoritative list
 
-- **Production dependencies**: required at runtime by the app.
-- **Dev dependencies**: required for building, testing and local development.
+The single source of truth for precise dependency names and versions is `package.json` and the lockfile `bun.lock`. If you need to audit or update versions, use Bun (`bun add`, `bun upgrade`) and update lockfile in CI with `bun install --frozen-lockfile`.
 
-When possible, prefer pinning to specific minor/patch versions and keep a lockfile (`bun.lock`) checked into the repo to ensure reproducible installs.
+## Tips for keeping dependencies healthy
 
-## Runtime & Tooling
+- Keep `bun.lock` committed to the repo for reproducible installs.
+- Use automated security checks (Dependabot, Snyk) to open PRs for updates and scan for vulnerabilities.
+- Upgrade dependencies incrementally and run the full test suite and CI before merging.
 
-- `bun` — runtime, package manager, and test runner for local development and CI (see `bun.lock`).
-- `typescript` — static typing and compilation step.
-- `ts-node` / Bun-native TS support — used for running TypeScript in development (project uses Bun runtime with TypeScript config).
-
-## Key Production Dependencies
-
-- `express` — HTTP server and routing.
-- `express-session` — session middleware for server-side sessions.
-- `connect-redis` and `redis` — Redis client + session store integration.
-- `mongoose` — MongoDB ODM used for models & schema definitions.
-- `cloudinary` — image/media uploads and transformations.
-- `zod` — validation schemas for request/response shapes (runtime + static typing aid).
-- `bcrypt` or `bcryptjs` — password hashing (check `package.json` for the exact chosen implementation).
-
-Note: `jsonwebtoken` may still exist in `package.json` for legacy utilities, but the app is session-first; remove only after verifying no code uses it.
-
-## Dev & Test Dependencies
-
-- `bun` (test runner + package manager) — used to run the test suite.
-- `supertest` — HTTP assertions and integration testing helpers.
-- `mocha` / `vitest` / `bun:test` — project test tooling (the repo uses Bun's test runner compatibility; check `package.json` scripts).
-- TypeScript types (`@types/express`, `@types/node`, etc.) — developer ergonomics.
-- `eslint` / `prettier` — linting and formatting.
-
-## Dependency Management & Lockfiles
-
-- Keep `bun.lock` in source control. This ensures deterministic installs across developers and CI.
-- In `package.json` choose a versioning policy and be consistent:
-  - Pin exact patch versions for critical runtime libs, or
-  - Use caret ranges `^` for controlled minor updates and run CI to validate.
-- In CI, install with a frozen lockfile to avoid unexpected resolution changes:
+## Quick commands
 
 ```zsh
-# using Bun
+# Add a runtime dependency
+bun add <package>
+
+# Add a dev dependency
+bun add -d <package>
+
+# Upgrade a package
+bun upgrade <package>
+
+# Install using the lockfile in CI
 bun install --frozen-lockfile
 ```
-````
+
+For a complete list of installed packages and exact versions, open `package.json` in the project root.
 
 If CI uses `npm`/`pnpm` as part of existing pipelines, prefer the equivalent frozen-lockfile flag for those tools.
 
