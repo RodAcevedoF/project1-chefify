@@ -6,14 +6,14 @@ This file contains simple Mermaid diagrams to visualise the most important flows
 
 ```mermaid
 graph LR
-  Client[Client (Browser / Mobile)] -->|HTTPS| API[Chefify API - Express (Bun)]
-  API --> Services[Services Layer]
-  Services --> Repos[Repositories (Mongoose)]
-  Services --> Redis[Redis (Session Store)]
-  Services --> Cloudinary[Cloudinary (Media)]
-  Services --> OpenAI[OpenAI API]
-  Services --> SMTP[SMTP Provider]
-  Repos --> Mongo[(MongoDB Atlas)]
+  Client["Client (Browser / Mobile)"] -->|HTTPS| API["Chefify API - Express/Bun"]
+  API --> Services["Services Layer"]
+  Services --> Repos["Repositories (Mongoose)"]
+  Services --> Redis["Redis (Session Store)"]
+  Services --> Cloudinary["Cloudinary (Media)"]
+  Services --> OpenAI["OpenAI API"]
+  Services --> SMTP["SMTP Provider"]
+  Repos --> Mongo["MongoDB Atlas"]
 
   style API fill:#f9f,stroke:#333,stroke-width:1px
   style Redis fill:#ffebcc
@@ -33,7 +33,7 @@ sequenceDiagram
   participant M as MongoDB
 
   C->>API: POST /auth/login (email,password)
-  API->>S: validate + authenticate user
+  API->>S: validate and authenticate user
   S->>M: find user by email
   M-->>S: user record
   S-->>API: user info
@@ -42,7 +42,7 @@ sequenceDiagram
   API-->>C: Set-Cookie: sessionId (HttpOnly, Secure)
   C-->>API: subsequent requests include cookie
 
-  Note over R,API: Sessions persisted in Redis; session contains minimal user info (id, role, email)
+  Note over R, API: Sessions persisted in Redis; session contains minimal user info: id, role, email
 ```
 
 ## Sequence: Protected Request Flow
@@ -69,12 +69,12 @@ sequenceDiagram
 ```mermaid
 flowchart TB
   subgraph Cloud
-    LB[Load Balancer]
-    App[App instances (Bun + Express)]
-    Redis[Redis - Private Network]
-    Mongo[MongoDB Atlas]
-    Cloudinary[Cloudinary]
-    OpenAI[OpenAI]
+    LB["Load Balancer"]
+    App["App instances (Bun & Express)"]
+    Redis["Redis - Private Network"]
+    Mongo["MongoDB Atlas"]
+    Cloudinary["Cloudinary"]
+    OpenAI["OpenAI"]
   end
 
   Client --> LB --> App
