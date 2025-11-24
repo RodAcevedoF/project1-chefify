@@ -9,6 +9,7 @@ import { redisClient } from '../config/redis.config';
 import logger from '../utils/logger';
 import { asRedis } from '../utils/redisCompat';
 import { emailRoute } from '@/utils/emailRoutes';
+import { normalizeAIUsage } from '@/utils/aiUsage';
 
 const redis = asRedis(redisClient);
 
@@ -153,11 +154,19 @@ export const AuthService = {
 	): Promise<Pick<IUser, 'isVerified' | 'role' | 'aiUsage'> & { id: string }> {
 		const user = await UserRepository.findById(userId);
 		if (!user) throw new NotFoundError('User not found');
+
+		const normalizedAIUsage = normalizeAIUsage(user.aiUsage);
+
+		if (user.aiUsage && normalizedAIUsage.count !== user.aiUsage.count) {
+			user.aiUsage = normalizedAIUsage;
+			await user.save();
+		}
+
 		return {
 			isVerified: user.isVerified,
 			id: user._id,
 			role: user.role,
-			aiUsage: user.aiUsage,
+			aiUsage: normalizedAIUsage,
 		};
 	},
 

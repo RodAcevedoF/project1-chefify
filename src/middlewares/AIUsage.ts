@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { User } from '../models';
 import { ForbiddenError, NotFoundError, UnauthorizedError } from '../errors';
+import { shouldResetAIUsage } from '../utils/aiUsage';
 
 export async function limitAIUsage(
 	req: Request,
@@ -24,10 +25,7 @@ export async function limitAIUsage(
 		return next();
 	}
 
-	const diffInHours =
-		(now.getTime() - user.aiUsage.lastReset.getTime()) / (1000 * 60 * 60);
-
-	if (diffInHours >= 24) {
+	if (shouldResetAIUsage(user.aiUsage)) {
 		user.aiUsage.count = 1;
 		user.aiUsage.lastReset = now;
 	} else {
