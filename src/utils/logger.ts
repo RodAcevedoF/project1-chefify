@@ -1,10 +1,8 @@
 type LogFn = (...args: unknown[]) => void;
 
-const isDev = process.env.NODE_ENV !== 'production';
-
 let impl = {
 	info: (...args: unknown[]) => {
-		if (isDev) console.info('[chefify]', ...args);
+		console.info('[chefify]', ...args);
 	},
 	warn: (...args: unknown[]) => {
 		console.warn('[chefify]', ...args);
