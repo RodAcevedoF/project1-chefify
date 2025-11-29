@@ -1,7 +1,7 @@
-import app from './src/app.js';
+import app from './src/app.ts';
 import { connectDB } from './src/config/mongo.config.ts';
 import config from './src/config/config.ts';
-import logger from './src/utils/logger';
+import logger from './src/utils/logger.ts';
 
 async function startServer() {
 	try {
