@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import express from 'express';
 import { errorHandler } from './middlewares/ErrorHandler';
 import { loadCheckers, loadMiddlewares, loadRoutes } from './utils';

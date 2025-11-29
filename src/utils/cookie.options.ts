@@ -1,5 +1,3 @@
-import 'dotenv/config';
-
 const COOKIE_NAME = process.env.COOKIE_NAME;
 const COOKIE_OPTIONS = {
 	httpOnly: true,
