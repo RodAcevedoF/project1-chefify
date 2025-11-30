@@ -1,4 +1,4 @@
-import helmet from 'helmet';
+//import helmet from 'helmet';
 import cors from 'cors';
 import morgan from 'morgan';
 import { generalRateLimiter } from '../middlewares/rateLimit';
@@ -12,7 +12,8 @@ import { getRedisStore } from './sessionStore';
 const RedisStore = getRedisStore(session as unknown as typeof session);
 
 export const loadMiddlewares = (app: Express) => {
-	app.use(helmet());
+	// Security has been moved into proxy server (nginx)
+	//app.use(helmet());
 
 	app.use(morgan('dev'));
 
