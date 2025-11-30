@@ -18,7 +18,7 @@ export const AuthController = {
 		if (!token) throw new BadRequestError('Invalid token');
 		await AuthService.verifyEmail(token.toString());
 		const frontend = process.env.FRONTEND_URL;
-		return res.redirect(`${frontend}/`);
+		return res.redirect(`${frontend}/?verified=true`);
 	},
 
 	async login(req: Request, res: Response) {
