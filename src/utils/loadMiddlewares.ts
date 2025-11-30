@@ -58,7 +58,7 @@ export const loadMiddlewares = (app: Express) => {
 				cookie: {
 					httpOnly: true,
 					secure: process.env.NODE_ENV === 'production',
-					sameSite: 'lax',
+					sameSite: 'none',
 					maxAge:
 						Number(process.env.SESSION_MAX_AGE) || 1000 * 60 * 60 * 24 * 7,
 				},
