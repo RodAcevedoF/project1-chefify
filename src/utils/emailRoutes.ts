@@ -8,11 +8,10 @@ export const emailRoute = (token: string, { option }: RouteOptions) => {
 	const target = (process.env.EMAIL_LINK_TARGET || 'frontend').toLowerCase();
 
 	if (target === 'api') {
-		const API_DOMAIN = process.env.API_URL;
-		const BASE_ROUTE = process.env.BASE_ROUTE || '/chefify/api/v1';
-		const API_VERIFY = `${BASE_ROUTE}/auth/verify-email?token=`;
-		const API_RESET = `${BASE_ROUTE}/auth/reset-password?token=`;
-		return `${API_DOMAIN}${option === 'verify' ? API_VERIFY : API_RESET}${token}`;
+		const API_URL = process.env.API_URL;
+		const API_VERIFY = `/auth/verify-email?token=`;
+		const API_RESET = `/auth/reset-password?token=`;
+		return `${API_URL}${option === 'verify' ? API_VERIFY : API_RESET}${token}`;
 	}
 
 	const FRONTEND = process.env.FRONTEND_URL;
